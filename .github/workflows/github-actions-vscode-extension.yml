@@ -59,7 +59,7 @@ jobs:
         if: success() && github.ref == 'refs/heads/master'
         run: | 
           npm install -g vsce
-          vsce publish patch -p $VSCE_TOKEN
+          vsce publish -p $VSCE_TOKEN
         env: 
           VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
-        continue-on-error: false
+        continue-on-error: true
