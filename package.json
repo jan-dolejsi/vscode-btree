@@ -1,5 +1,5 @@
 {
-	"name": "vscode-btree",
+	"name": "btree",
 	"displayName": "Behavior tree",
 	"description": "Behavior tree editing and visualization.",
 	"publisher": "jan-dolejsi",
