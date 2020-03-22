@@ -1,10 +1,10 @@
 {
 	"name": "btree",
-	"displayName": "Behavior tree",
+	"displayName": "Behavior Tree",
 	"description": "Behavior tree editing and visualization.",
 	"publisher": "jan-dolejsi",
 	"author": "Jan Dolejsi",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"engines": {
 		"vscode": "^1.43.0"
 	},
@@ -13,7 +13,7 @@
 	],
 	"icon": "icon.png",
 	"galleryBanner": {
-		"color": "darkblue",
+		"color": "#03b1fc",
 		"theme": "dark"
 	},
 	"bugs": {

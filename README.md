@@ -19,6 +19,4 @@ Double-click on an action node to switch its state between _running_/_success_/_
 
 ## Release Notes
 
-### 0.0.1
-
-Basic tree visualization and status changing upon double-click.
+See [CHANGELOG.md](CHANGELOG.md).
