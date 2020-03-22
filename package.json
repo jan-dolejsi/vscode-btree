@@ -4,7 +4,7 @@
 	"description": "Behavior tree editing and visualization.",
 	"publisher": "jan-dolejsi",
 	"author": "Jan Dolejsi",
-	"version": "1.0.1",
+	"version": "1.1.0",
 	"engines": {
 		"vscode": "^1.43.0"
 	},
@@ -39,6 +39,11 @@
 				"command": "behaviortree.previewToSide",
 				"key": "ctrl+k v",
 				"mac": "cmd+k shift+v",
+				"when": "editorTextFocus && editorLangId == tree"
+			},
+			{
+				"command": "behaviortree.backspace",
+				"key": "backspace",
 				"when": "editorTextFocus && editorLangId == tree"
 			}
 		],
