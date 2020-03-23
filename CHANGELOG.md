@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.3.x
+
+- Support for comments (text after `;;`) in the tree syntax.
+- Support for the `[Tab]` key
+
 ## 1.2.x
 
 Enable the `editor.formatOnType` in your VS Code settings. This enables following behaviors:

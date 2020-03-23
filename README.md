@@ -26,6 +26,15 @@ Right-click on the editor text and select Preview or invoke the _Open Preview to
 
 > Note that for the _preview_ options to be visible, the file has to be _saved_.
 
+Dense trees with longer action/condition names may be stretched using _Shift_ + _Mouse Wheel_. Here are other ways to manipulate the view:
+
+| Tree Manipulation | Gesture |
+|:---:| --- |
+| Pan | Hold left mouse button and move |
+| Zoom | Mouse Wheel |
+| Horizontal Stretch | Shift + Wheel |
+| Vertical Stretch | Shift + Alt + Wheel |
+
 Double-click on a condition node to toggle its state between _success/_failed_.\
 Double-click on an action node to switch its state between _running_/_success_/_failed_. Hold the _shift_ key to transition from _running_ to _failed_.
 
@@ -36,7 +45,8 @@ Double-click on an action node to switch its state between _running_/_success_/_
 Enable the `editor.formatOnType` in your VS Code settings. This enables following behaviors:
 
 - When you type `|`, white-space corresponding to one `tab` (per your configuration) is inserted
-- When you press `[Enter]`, the same indentation is inserted to the new line
+- When you press `[Tab]`, one tree indentation level is inserted (when multiple lines are selected or while your cursor is in the _indentation_ part of the code line)
+- When you press `[Enter]`, the same indentation is inserted to the new line. In addition, if you pressed enter after `->`, `?` or `=N` nodes, additional level is added.
 - When you press `[Backspace]` one level of indentation is removed
 - When you press `Ctrl+[` or `Cmd+[`, the active row (or all selected rows) are indented +1 level
 - When you press `Ctrl+]` or `Cmd+]`, the active row (or all selected rows) are un-indented -1 level
@@ -46,6 +56,7 @@ Enable the `editor.formatOnType` in your VS Code settings. This enables followin
 > You can enable the on-type formatting selectively just for the _Tree_ language and/or just for one workspace using the `settings.json` in your workspace `.vscode` or in your global user settings:
 >
 > ```json
+> {
 >     "[tree]": {
 >         "editor.formatOnType": true
 >     }

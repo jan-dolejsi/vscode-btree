@@ -60,6 +60,7 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(languages.registerOnTypeFormattingEditProvider(TREE, new TreeOnTypeFormattingEditProvider(), '|', '\n')); // not working '\x08' or \b
 
     context.subscriptions.push(commands.registerCommand('behaviortree.backspace', TreeOnTypeFormattingEditProvider.backspace));
+    context.subscriptions.push(commands.registerCommand('behaviortree.tab', TreeOnTypeFormattingEditProvider.tab));
     context.subscriptions.push(commands.registerCommand('behaviortree.indent', TreeOnTypeFormattingEditProvider.indent));
     context.subscriptions.push(commands.registerCommand('behaviortree.unindent', TreeOnTypeFormattingEditProvider.unindent));
     

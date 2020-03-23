@@ -3,7 +3,7 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-import { OnTypeFormattingEditProvider, TextDocument, Position, FormattingOptions, CancellationToken, ProviderResult, TextEdit, Range, window, Selection, commands, workspace, TextEditor } from 'vscode';
+import { OnTypeFormattingEditProvider, TextDocument, Position, FormattingOptions, CancellationToken, ProviderResult, TextEdit, Range, window, Selection, commands, workspace, TextEditor, TextEditorOptions } from 'vscode';
 import { TreeParser } from './TreeParser';
 
 export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditProvider {
@@ -103,37 +103,87 @@ export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditPro
         return commands.executeCommand('deleteLeft');
     }
 
+    static tab(): Thenable<unknown> {
+
+        if (window.activeTextEditor) {
+            const document = window.activeTextEditor.document;
+            const selections = window.activeTextEditor.selections;
+            const options = window.activeTextEditor.options;
+            const formattingOptions = TreeOnTypeFormattingEditProvider.toFormattingOptions(options);
+
+            // is the selection multi-line?
+            const isMultilineSelection = selections.some(s => !s.isSingleLine);
+            // is the cursor inside indentation (empty selection)?
+            const isInIndentation = selections.every(s => TreeOnTypeFormattingEditProvider.isInIndentation(s, document));
+
+            if (isMultilineSelection || isInIndentation) {
+                const selectedLines = TreeOnTypeFormattingEditProvider.getSelectedLines(window.activeTextEditor);
+                return TreeOnTypeFormattingEditProvider.indentLines(document, selectedLines, formattingOptions);
+            }
+        }
+
+        return commands.executeCommand('tab');
+    }
+
+    static isInIndentation(s: Selection, document: TextDocument): boolean {
+        if (!s.isEmpty) {
+            return false;
+        }
+
+        const line = document.lineAt(s.anchor.line);
+
+        const [indentation] = TreeParser.splitSourceLine(line.text);
+
+        return s.start.character <= indentation.length;
+    }
+
     static async indent(): Promise<void> {
 
         if (window.activeTextEditor) {
             const document = window.activeTextEditor.document;
             const options = window.activeTextEditor.options;
-            const formattingOptions: FormattingOptions = {
-                insertSpaces: options.insertSpaces as boolean,
-                tabSize: options.tabSize as number
-            };
+            const formattingOptions = TreeOnTypeFormattingEditProvider.toFormattingOptions(options);
 
             const selectedLines = TreeOnTypeFormattingEditProvider.getSelectedLines(window.activeTextEditor);
+            return TreeOnTypeFormattingEditProvider.indentLines(document, selectedLines, formattingOptions);
+        }
+    }
 
-            for (const line of selectedLines) {
-                const lineText = document.lineAt(line).text;
-                const [indentations, _] = TreeParser.splitSourceLine(lineText);
+    static toFormattingOptions(options: TextEditorOptions): FormattingOptions {
+        return {
+            insertSpaces: options.insertSpaces as boolean,
+            tabSize: options.tabSize as number
+        };
+    }
 
-                const success = await window.activeTextEditor?.edit(editBuilder => {
-                    editBuilder.insert(new Position(line, indentations.length), '|' + TreeParser.tab(formattingOptions));
-                });
+    static async indentLines(document: TextDocument, selectedLines: Set<number>, formattingOptions: FormattingOptions): Promise<void> {
+        for (const line of selectedLines) {
+            const lineText = document.lineAt(line).text;
+            const [indentations, _] = TreeParser.splitSourceLine(lineText);
 
-                if (!success) {
-                    console.error(`Failed to indent ${line}`);
-                }
+            const success = await window.activeTextEditor?.edit(editBuilder => {
+                editBuilder.insert(new Position(line, indentations.length), '|' + TreeParser.tab(formattingOptions));
+            });
+
+            if (!success) {
+                console.error(`Failed to indent ${line}`);
             }
         }
     }
 
     private static getSelectedLines(editor: TextEditor) {
         return new Set<number>(editor.selections
-            .map(selection => range(selection.start.line, selection.end.character > 0 ? selection.end.line : selection.end.line - 1))
+            .map(selection => range(selection.start.line, TreeOnTypeFormattingEditProvider.getAdjustedEndLine(selection)))
             .reduce((prev, cur) => prev.concat(cur), []));
+    }
+
+    private static getAdjustedEndLine(selection: Selection): number {
+        if (!selection.isSingleLine && selection.end.character === 0) {
+            return selection.end.line - 1;
+        }
+        else {
+        return selection.end.line;
+        }
     }
 
     static async unindent(): Promise<void> {
