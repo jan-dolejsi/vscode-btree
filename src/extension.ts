@@ -16,6 +16,18 @@ export function activate(context: ExtensionContext) {
     const behaviorTreePreviewGenerator = new BehaviorTreePreviewGenerator(context);
     const parser = new TreeParser();
 
+    context.subscriptions.push(workspace.onDidOpenTextDocument((doc: TextDocument) => {
+        if (doc.languageId === TREE) {
+            parser.validate(doc);
+        }
+    }));
+
+    context.subscriptions.push(workspace.onDidCloseTextDocument((doc: TextDocument) => {
+        if (doc.languageId === TREE) {
+            parser.clearValidation(doc);
+        }
+    }));
+
     // When the active document is changed set the provider for rebuild
     // this only occurs after an edit in a document
     context.subscriptions.push(workspace.onDidChangeTextDocument((e: TextDocumentChangeEvent) => {
@@ -46,10 +58,16 @@ export function activate(context: ExtensionContext) {
 	});
 
     context.subscriptions.push(languages.registerOnTypeFormattingEditProvider(TREE, new TreeOnTypeFormattingEditProvider(), '|', '\n')); // not working '\x08' or \b
-    context.subscriptions.push(commands.registerCommand('behaviortree.backspace',TreeOnTypeFormattingEditProvider.backspace));
+
+    context.subscriptions.push(commands.registerCommand('behaviortree.backspace', TreeOnTypeFormattingEditProvider.backspace));
+    context.subscriptions.push(commands.registerCommand('behaviortree.indent', TreeOnTypeFormattingEditProvider.indent));
+    context.subscriptions.push(commands.registerCommand('behaviortree.unindent', TreeOnTypeFormattingEditProvider.unindent));
     
     context.subscriptions.push(languages.setLanguageConfiguration(TREE, languageConfiguration()));
     context.subscriptions.push(previewToSide, preview, behaviorTreePreviewGenerator);
+
+    // when the editor re-opens a workspace, this will re-validate the visible documents
+    workspace.textDocuments.forEach(doc => parser.validate(doc));
 }
 
 async function getTreeDocument(treeDocumentUri: Uri | undefined): Promise<TextDocument | undefined> {

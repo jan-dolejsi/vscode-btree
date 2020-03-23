@@ -13,7 +13,7 @@ export class TreeParser {
         this.diagnosticCollection = languages.createDiagnosticCollection("BehaviorTree");
     }
 
-    validate(document: TextDocument) {
+    validate(document: TextDocument): void {
         const tree = TreeParser.parse(document.getText());
 
         const diagnostics = new Array<Diagnostic>();
@@ -26,16 +26,20 @@ export class TreeParser {
         this.diagnosticCollection.set(document.uri, diagnostics);
     }
 
-    static getIndentsAndRest(previousLineText: string): [string, string] {
-        const match = previousLineText.match(/^([|\s]*)/);
+    clearValidation(document: TextDocument): void {
+        this.diagnosticCollection.set(document.uri, []);
+    }
+
+    static splitSourceLine(lineText: string): [string, string] {
+        const match = lineText.match(/^([|\s]*)/);
 
         if (match !== null) {
             const indents = match[1];
-            const rest = previousLineText.substr(indents.length);
+            const rest = lineText.substr(indents.length);
             return [indents, rest];
         }
 
-        return ["", previousLineText];
+        return ["", lineText];
     }
 
     static getParentNode(text: string): string | undefined {
@@ -57,12 +61,12 @@ export class TreeParser {
     }
 
     static unindent(text: string): string {
-        const [indents, rest] = TreeParser.getIndentsAndRest(text);
+        const [indents, rest] = TreeParser.splitSourceLine(text);
         return indents.substring(0, indents.lastIndexOf('|')) + rest;
     }
 
     static indent(text: string, options: FormattingOptions): string {
-        const [indents, rest] = TreeParser.getIndentsAndRest(text);
+        const [indents, rest] = TreeParser.splitSourceLine(text);
         return indents + '|' + TreeParser.tab(options) + rest;
     }
 
