@@ -9,6 +9,10 @@
 
 - Fix: pre-opened documents in the workspace are parsed upon activation irrespective of their _language_.
 
+### 1.3.2
+
+- Fix: Tree is not confined to its own viewbox and the page containing it does not scroll, when it is mouse-wheel zoomed.
+
 ## 1.2.x
 
 Enable the `editor.formatOnType` in your VS Code settings. This enables following behaviors:
