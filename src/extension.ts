@@ -68,7 +68,9 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(previewToSide, preview, behaviorTreePreviewGenerator);
 
     // when the editor re-opens a workspace, this will re-validate the visible documents
-    workspace.textDocuments.forEach(doc => parser.validate(doc));
+    workspace.textDocuments
+        .filter(doc => doc.languageId === TREE)
+        .forEach(doc => parser.validate(doc));
 }
 
 async function getTreeDocument(treeDocumentUri: Uri | undefined): Promise<TextDocument | undefined> {
@@ -91,5 +93,8 @@ function languageConfiguration(): LanguageConfiguration {
     return {
         brackets: [['(', ')'], ['[', ']']],
         wordPattern: /\w[\w- ]*/,
+        comments: {
+            lineComment: ';;'
+        }
     };
 }

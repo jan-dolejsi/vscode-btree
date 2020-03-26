@@ -5,6 +5,10 @@
 - Support for comments (text after `;;`) in the tree syntax.
 - Support for the `[Tab]` key
 
+### 1.3.1
+
+- Fix: pre-opened documents in the workspace are parsed upon activation irrespective of their _language_.
+
 ## 1.2.x
 
 Enable the `editor.formatOnType` in your VS Code settings. This enables following behaviors:
