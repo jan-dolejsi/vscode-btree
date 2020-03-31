@@ -13,7 +13,7 @@ export class TreeParser {
         this.diagnosticCollection = languages.createDiagnosticCollection("BehaviorTree");
     }
 
-    validate(document: TextDocument): BehaviorTree {
+    parseAndValidate(document: TextDocument): BehaviorTree {
         const tree = TreeParser.parse(document.getText());
 
         const diagnostics = new Array<Diagnostic>();

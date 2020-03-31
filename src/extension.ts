@@ -8,10 +8,11 @@ import { BehaviorTreePreviewGenerator } from './BehaviorTreePreviewGenerator';
 import { TreeOnTypeFormattingEditProvider } from './TreeOnTypeFormattingEditProvider';
 import { TreeParser } from './TreeParser';
 import { TreeWorkspaceRegistry } from './TreeWorkspaceRegistry';
+import { TreeCompletionItemProvider } from './TreeCompletionItemProvider';
 
-const TREE = 'tree';
-export const treeWorkspaceRegistry = new TreeWorkspaceRegistry();
+export const TREE = 'tree';
 export const parser = new TreeParser();
+export const treeWorkspaceRegistry = new TreeWorkspaceRegistry(parser);
 
 export function activate(context: ExtensionContext) {
 
@@ -69,6 +70,9 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(languages.setLanguageConfiguration(TREE, languageConfiguration()));
     context.subscriptions.push(previewToSide, preview, behaviorTreePreviewGenerator);
 
+    const completionItemProvider = new TreeCompletionItemProvider(treeWorkspaceRegistry);
+    languages.registerCompletionItemProvider(TREE, completionItemProvider, '(', '[');
+
     // when the editor re-opens a workspace, this will re-validate the visible documents
     workspace.textDocuments
         .filter(doc => doc.languageId === TREE)
@@ -76,7 +80,7 @@ export function activate(context: ExtensionContext) {
 }
 
 export function validateAndUpdateWorkspace(parser: TreeParser, doc: TextDocument): void {
-    const tree = parser.validate(doc);
+    const tree = parser.parseAndValidate(doc);
     treeWorkspaceRegistry.updateWorkspace(doc.uri, tree);
 }
 

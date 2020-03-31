@@ -3,18 +3,20 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-import { Uri, workspace, window, EventEmitter, Event, FileStat, Disposable } from 'vscode';
+import { Uri, workspace, window, EventEmitter, Event, FileStat, Disposable, TextDocument } from 'vscode';
 import { BehaviorTree } from 'behavior_tree_service';
 import * as path from 'path';
+import { TreeParser } from './TreeParser';
+import { parser } from './extension';
 
 export interface WorkspaceTreeEvent {
-    workspace: Workspace;
+    workspace: TreeWorkspace;
     uri: Uri;
     tree: BehaviorTree;
 }
 
 export interface WorkspaceEvent {
-    workspace: Workspace;
+    workspace: TreeWorkspace;
 }
 
 interface TreeWorkspaceManifest {
@@ -25,7 +27,7 @@ interface TreeWorkspaceManifest {
 /**
  * Holds info about all files in a folder.
  */
-export class Workspace implements Disposable {
+export class TreeWorkspace implements Disposable {
     /** Trees in this folder. */
     private trees = new Map<string, BehaviorTree>();
 
@@ -45,14 +47,18 @@ export class Workspace implements Disposable {
 
     private initialized = false;
 
-    constructor(public readonly folderUri: string) {
-        this.manifestPath = path.join(this.folderUri, 'btrees.json');
+    constructor(public readonly folderPath: string, private parse: TreeParser) {
+        this.manifestPath = path.join(this.folderPath, 'btrees.json');
 
         this.initialize();
     }
 
     getTree(treeUri: Uri): BehaviorTree | undefined {
         return this.trees.get(treeUri.toString());
+    }
+
+    getTrees(): BehaviorTree[] {
+        return [...this.trees.values()];
     }
 
     /**
@@ -159,6 +165,29 @@ export class Workspace implements Disposable {
     }
 
     async initialize(): Promise<void> {
+        this.initializeManifest();
+
+        const manifestWatcher =
+            workspace.createFileSystemWatcher(this.manifestPath);
+
+        manifestWatcher.onDidChange(() => this.initializeManifest());
+        manifestWatcher.onDidCreate(() => this.initializeManifest());
+        manifestWatcher.onDidDelete(() => this.initializeManifest());
+
+        const relativeGlob = workspace.asRelativePath(path.join(this.folderPath, '*.tree'));
+        const allTreeUris = await workspace.findFiles(relativeGlob);
+        const allTreeParsingPromises = allTreeUris
+            .map(async (treeUri) =>
+                this.parseAndUpsert(treeUri, await workspace.openTextDocument(treeUri)));
+
+        // wait for all trees to be open and parsed
+        await Promise.all(allTreeParsingPromises);
+        
+        this.initialized = true;
+        this._onInitialized.fire({ workspace: this });
+    }
+
+    async initializeManifest(): Promise<void> {
         try {
             const manifest = await this.readManifest();
             if (manifest) {
@@ -169,14 +198,6 @@ export class Workspace implements Disposable {
         catch (ex) {
             window.showWarningMessage(`Unable to read manifest from ${this.manifestPath}.`);
         }
-
-        const manifestWatcher = workspace.createFileSystemWatcher(this.manifestPath);
-        manifestWatcher.onDidChange(() => this.initialize());
-        manifestWatcher.onDidCreate(() => this.initialize());
-        manifestWatcher.onDidDelete(() => this.initialize());
-
-        this.initialized = true;
-        this._onInitialized.fire({ workspace: this });
     }
 
     private async readManifest(): Promise<TreeWorkspaceManifest | undefined> {
@@ -213,7 +234,12 @@ export class Workspace implements Disposable {
         return this.actionsDeclared;
     }
 
-    upsert(uri: Uri, tree: BehaviorTree) {
+    parseAndUpsert(uri: Uri, document: TextDocument): void {
+        const tree = parser.parseAndValidate(document);
+        this.upsert(uri, tree);
+    }
+
+    upsert(uri: Uri, tree: BehaviorTree): void {
         this.trees.set(uri.toString(), tree);
         this.updateConditionsUsed();
         this.updateActionsUsed();

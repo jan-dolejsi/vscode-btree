@@ -7,13 +7,18 @@
 
 import * as path from 'path';
 import { Uri, EventEmitter, Event, Disposable } from 'vscode';
-import { Workspace, WorkspaceTreeEvent, WorkspaceEvent } from './Workspace';
+import { TreeWorkspace, WorkspaceTreeEvent, WorkspaceEvent } from './TreeWorkspace';
 import { BehaviorTree } from 'behavior_tree_service';
+import { TreeParser } from './TreeParser';
 
 export class TreeWorkspaceRegistry implements Disposable {
-    private workspaces = new Map<string, Workspace>();
+    private workspaces = new Map<string, TreeWorkspace>();
     private _onChanged = new EventEmitter<WorkspaceTreeEvent>();
     private _onWorkspaceInitialized = new EventEmitter<WorkspaceEvent>();
+
+    constructor(private parser: TreeParser) {
+
+    }
 
     public get onWorkspaceInitialized(): Event<WorkspaceEvent> {
         return this._onWorkspaceInitialized.event;
@@ -23,10 +28,18 @@ export class TreeWorkspaceRegistry implements Disposable {
         return this._onChanged.event;
     }
 
+    /**
+     * Folder path
+     * @param folderPath path of the folder
+     */
+    getWorkspace(folderPath: string): TreeWorkspace | undefined {
+        return this.workspaces.get(folderPath);
+    }
+
     updateWorkspace(uri: Uri, tree: BehaviorTree): void {
         const folder = path.dirname(uri.fsPath);
         if (!this.workspaces.has(folder)) {
-            const newTreeWorkspace = new Workspace(folder);
+            const newTreeWorkspace = new TreeWorkspace(folder, this.parser);
             newTreeWorkspace.onChanged(e => this._onChanged.fire(e));
             newTreeWorkspace.onInitialized(e => this._onWorkspaceInitialized.fire(e));
             this.workspaces.set(folder, newTreeWorkspace);
