@@ -7,18 +7,20 @@ import { workspace, ExtensionContext, TextDocumentChangeEvent, TextDocument, com
 import { BehaviorTreePreviewGenerator } from './BehaviorTreePreviewGenerator';
 import { TreeOnTypeFormattingEditProvider } from './TreeOnTypeFormattingEditProvider';
 import { TreeParser } from './TreeParser';
+import { TreeWorkspaceRegistry } from './TreeWorkspaceRegistry';
 
 const TREE = 'tree';
+export const treeWorkspaceRegistry = new TreeWorkspaceRegistry();
+export const parser = new TreeParser();
 
 export function activate(context: ExtensionContext) {
 
-	console.log('"vscode-btree" was activated');
+    console.log('"vscode-btree" was activated');
     const behaviorTreePreviewGenerator = new BehaviorTreePreviewGenerator(context);
-    const parser = new TreeParser();
 
     context.subscriptions.push(workspace.onDidOpenTextDocument((doc: TextDocument) => {
         if (doc.languageId === TREE) {
-            parser.validate(doc);
+            validateAndUpdateWorkspace(parser, doc);
         }
     }));
 
@@ -33,29 +35,29 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(workspace.onDidChangeTextDocument((e: TextDocumentChangeEvent) => {
         if (e.document.languageId === TREE) {
             behaviorTreePreviewGenerator.setNeedsRebuild(e.document.uri, true);
-            parser.validate(e.document);
+            validateAndUpdateWorkspace(parser, e.document);
         }
     }));
 
-	context.subscriptions.push(workspace.onDidSaveTextDocument((doc: TextDocument) => {
-		if (doc.languageId === TREE) {
-			behaviorTreePreviewGenerator.setNeedsRebuild(doc.uri, true);
-		}
-	}));
+    context.subscriptions.push(workspace.onDidSaveTextDocument((doc: TextDocument) => {
+        if (doc.languageId === TREE) {
+            behaviorTreePreviewGenerator.setNeedsRebuild(doc.uri, true);
+        }
+    }));
 
-	const previewToSide = commands.registerCommand("behaviortree.previewToSide", async (treeDocumentUri: Uri) => {
-		let treeDocument = await getTreeDocument(treeDocumentUri);
-		if (treeDocument) {
-			return behaviorTreePreviewGenerator.revealOrCreatePreview(treeDocument, ViewColumn.Beside);
-		}
-	});
+    const previewToSide = commands.registerCommand("behaviortree.previewToSide", async (treeDocumentUri: Uri) => {
+        let treeDocument = await getTreeDocument(treeDocumentUri);
+        if (treeDocument) {
+            return behaviorTreePreviewGenerator.revealOrCreatePreview(treeDocument, ViewColumn.Beside);
+        }
+    });
 
-	const preview = commands.registerCommand("behaviortree.preview", async (treeDocumentUri: Uri) => {
-		let treeDocument = await getTreeDocument(treeDocumentUri);
-		if (treeDocument) {
-			return behaviorTreePreviewGenerator.revealOrCreatePreview(treeDocument, ViewColumn.Active);
-		}
-	});
+    const preview = commands.registerCommand("behaviortree.preview", async (treeDocumentUri: Uri) => {
+        let treeDocument = await getTreeDocument(treeDocumentUri);
+        if (treeDocument) {
+            return behaviorTreePreviewGenerator.revealOrCreatePreview(treeDocument, ViewColumn.Active);
+        }
+    });
 
     context.subscriptions.push(languages.registerOnTypeFormattingEditProvider(TREE, new TreeOnTypeFormattingEditProvider(), '|', '\n')); // not working '\x08' or \b
 
@@ -63,14 +65,19 @@ export function activate(context: ExtensionContext) {
     context.subscriptions.push(commands.registerCommand('behaviortree.tab', TreeOnTypeFormattingEditProvider.tab));
     context.subscriptions.push(commands.registerCommand('behaviortree.indent', TreeOnTypeFormattingEditProvider.indent));
     context.subscriptions.push(commands.registerCommand('behaviortree.unindent', TreeOnTypeFormattingEditProvider.unindent));
-    
+
     context.subscriptions.push(languages.setLanguageConfiguration(TREE, languageConfiguration()));
     context.subscriptions.push(previewToSide, preview, behaviorTreePreviewGenerator);
 
     // when the editor re-opens a workspace, this will re-validate the visible documents
     workspace.textDocuments
         .filter(doc => doc.languageId === TREE)
-        .forEach(doc => parser.validate(doc));
+        .forEach(doc => validateAndUpdateWorkspace(parser, doc));
+}
+
+export function validateAndUpdateWorkspace(parser: TreeParser, doc: TextDocument): void {
+    const tree = parser.validate(doc);
+    treeWorkspaceRegistry.updateWorkspace(doc.uri, tree);
 }
 
 async function getTreeDocument(treeDocumentUri: Uri | undefined): Promise<TextDocument | undefined> {
@@ -87,7 +94,7 @@ async function getTreeDocument(treeDocumentUri: Uri | undefined): Promise<TextDo
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
 
 function languageConfiguration(): LanguageConfiguration {
     return {

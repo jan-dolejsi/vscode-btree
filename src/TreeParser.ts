@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 
 import { FormattingOptions, TextDocument, languages, DiagnosticCollection, Diagnostic, DiagnosticSeverity, Range } from 'vscode';
-const bts = require('behavior_tree_service');
+import { BehaviorTree } from 'behavior_tree_service';
 
 export class TreeParser {
     diagnosticCollection: DiagnosticCollection;
@@ -13,7 +13,7 @@ export class TreeParser {
         this.diagnosticCollection = languages.createDiagnosticCollection("BehaviorTree");
     }
 
-    validate(document: TextDocument): void {
+    validate(document: TextDocument): BehaviorTree {
         const tree = TreeParser.parse(document.getText());
 
         const diagnostics = new Array<Diagnostic>();
@@ -24,6 +24,8 @@ export class TreeParser {
         }
 
         this.diagnosticCollection.set(document.uri, diagnostics);
+
+        return tree;
     }
 
     clearValidation(document: TextDocument): void {
@@ -71,11 +73,6 @@ export class TreeParser {
     }
 
     static parse(text: string): BehaviorTree {
-        return <BehaviorTree>bts.BehaviorTree.fromText(text);
+        return BehaviorTree.fromText(text);
     }
-}
-
-export interface BehaviorTree {
-    error: string;
-    line: number;
 }
