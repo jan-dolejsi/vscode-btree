@@ -28,12 +28,12 @@ Right-click on the editor text and select Preview or invoke the _Open Preview to
 
 Dense trees with longer action/condition names may be stretched using _Shift_ + _Mouse Wheel_. Here are other ways to manipulate the view:
 
-| Tree Manipulation | Gesture |
-|:---:| --- |
-| Pan | Hold left mouse button and move |
-| Zoom | Mouse Wheel |
-| Horizontal Stretch | Shift + Wheel |
-| Vertical Stretch | Shift + Alt + Wheel |
+| Tree Manipulation  | Gesture                         |
+| :----------------: | ------------------------------- |
+|        Pan         | Hold left mouse button and move |
+|        Zoom        | Mouse Wheel                     |
+| Horizontal Stretch | Shift + Wheel                   |
+|  Vertical Stretch  | Shift + Alt + Wheel             |
 
 Double-click on a condition node to toggle its state between _success/_failed_.\
 Double-click on an action node to switch its state between _running_/_success_/_failed_. Hold the _shift_ key to transition from _running_ to _failed_.
@@ -62,6 +62,43 @@ Enable the `editor.formatOnType` in your VS Code settings. This enables followin
 >     }
 > }
 > ```
+
+### Action and Condition name validation
+
+When authoring larger trees, or multiple trees in one folder,
+it becomes hard to keep the names of all _conditions_ and _actions_
+in sync across multiple files.
+
+This extension works with the concept of _tree workspace_, which consists of
+a directory containing one ore more `.tree` files and an optional `btrees.json` file. The `btrees.json` structure is expected as follows:
+
+```json
+{
+  "actions": {
+    "action1": {},
+    "action2": {},
+  },
+  "conditions": {
+    "Condition XYZ": {}
+  }
+}
+```
+
+Where both the `actions` and `conditions` are optional.
+However, once the `actions` / `conditions` property is created, VS Code starts flagging
+all undeclared actions and conditions in all the trees in the directory.
+The undeclared actions may be added by simply invoking the code action (via the light bulb icon).
+
+![Declaring action and condition names](img/declared_actions_conditions.gif)
+
+The empty `{}` structures in the json sample above are free form so far.
+It may be used for documentation, or bindings to the system you want to automate with the trees.
+
+> This feature is available as opt-in. Create/delete the `btrees.json` and/or the `actions` and/or `condition`
+> nodes within to opt in or out of the action/condition name validation.
+
+The format of the file is JSON, so the same file may be used by other parts of the system
+to statically validate the system at continuous integration time or at start of execution.
 
 ## Release Notes
 

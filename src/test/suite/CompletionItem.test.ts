@@ -19,7 +19,6 @@ suite('Completion Item provider Test Suite', () => {
 
 	beforeEach(() => {
 		extension.treeWorkspaceRegistry.clear();
-		console.log('Workspace cleared.');
 	});
 
 	let filesToDelete = new Array<vscode.Uri>();

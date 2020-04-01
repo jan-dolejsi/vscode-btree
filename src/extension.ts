@@ -3,12 +3,14 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
+import * as path from 'path';
 import { workspace, ExtensionContext, TextDocumentChangeEvent, TextDocument, commands, Uri, ViewColumn, window, languages, LanguageConfiguration } from 'vscode';
 import { BehaviorTreePreviewGenerator } from './BehaviorTreePreviewGenerator';
 import { TreeOnTypeFormattingEditProvider } from './TreeOnTypeFormattingEditProvider';
 import { TreeParser } from './TreeParser';
 import { TreeWorkspaceRegistry } from './TreeWorkspaceRegistry';
 import { TreeCompletionItemProvider } from './TreeCompletionItemProvider';
+import { TreeCodeActionProvider, DiagnosticCode } from './TreeCodeActionProvider';
 
 export const TREE = 'tree';
 export const parser = new TreeParser();
@@ -73,6 +75,30 @@ export function activate(context: ExtensionContext) {
     const completionItemProvider = new TreeCompletionItemProvider(treeWorkspaceRegistry);
     languages.registerCompletionItemProvider(TREE, completionItemProvider, '(', '[');
 
+    context.subscriptions.push(commands.registerCommand(TreeCodeActionProvider.DECLARE_ALL, (documentUri?: Uri) => {
+        if (!documentUri) {
+            if (window.activeTextEditor) {
+                addAllUndeclaredToManifest(window.activeTextEditor.document.uri);
+            }
+            else {
+                window.showErrorMessage('No tree opened');
+            }
+        }
+        else {
+            addAllUndeclaredToManifest(documentUri);
+        }
+    }));
+
+    context.subscriptions.push(languages.registerCodeActionsProvider(TREE,
+        new TreeCodeActionProvider(treeWorkspaceRegistry)));
+    
+    context.subscriptions.push(commands.registerCommand(TreeCodeActionProvider.DECLARE_ACTION, (diagCode: DiagnosticCode) => {
+        diagCode.treeWorkspace.addDeclaredAction(diagCode.undeclaredName);
+    }));
+    context.subscriptions.push(commands.registerCommand(TreeCodeActionProvider.DECLARE_CONDITION, (diagCode: DiagnosticCode) => {
+        diagCode.treeWorkspace.addDeclaredCondition(diagCode.undeclaredName);
+    }));
+
     // when the editor re-opens a workspace, this will re-validate the visible documents
     workspace.textDocuments
         .filter(doc => doc.languageId === TREE)
@@ -81,7 +107,7 @@ export function activate(context: ExtensionContext) {
 
 export function validateAndUpdateWorkspace(parser: TreeParser, doc: TextDocument): void {
     const tree = parser.parseAndValidate(doc);
-    treeWorkspaceRegistry.updateWorkspace(doc.uri, tree);
+    treeWorkspaceRegistry.updateWorkspace(doc, tree);
 }
 
 async function getTreeDocument(treeDocumentUri: Uri | undefined): Promise<TextDocument | undefined> {
@@ -108,4 +134,16 @@ function languageConfiguration(): LanguageConfiguration {
             lineComment: ';;'
         }
     };
+}
+
+function addAllUndeclaredToManifest(uri: Uri): void {
+    const folderName = path.dirname(uri.fsPath);
+    const folder = treeWorkspaceRegistry.getWorkspace(folderName);
+
+    if (!folder) {
+        window.showErrorMessage(`No Trees in the folder ${folderName}`);
+    }
+    else {
+        folder.addAllUndeclared(uri);
+    }
 }

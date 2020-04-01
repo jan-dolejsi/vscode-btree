@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.4.x
+
+Added
+
+- Auto-completion with action and condition names used in any tree in the same directory
+- `btrees.json` manifest with all _supported_ actions and conditions (this is opt-in)
+- Warnings when undeclared action and condition is used
+- Code action to add one or all undeclared actions/conditions
+
+![Declaring action and condition names](img/declared_actions_conditions.gif)
+
 ## 1.3.x
 
 - Support for comments (text after `;;`) in the tree syntax.

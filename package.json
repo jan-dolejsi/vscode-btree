@@ -4,7 +4,7 @@
 	"description": "Behavior tree editing and visualization.",
 	"publisher": "jan-dolejsi",
 	"author": "Jan Dolejsi",
-	"version": "1.3.2",
+	"version": "1.4.0",
 	"engines": {
 		"vscode": "^1.41.0"
 	},
@@ -81,6 +81,11 @@
 				"command": "behaviortree.previewToSide",
 				"title": "Open Preview to the Side",
 				"category": "BehaviorTree"
+			},
+			{
+				"command": "behaviortree.addAllUndeclaredToManifest",
+				"title": "Add all undeclared conditions and actions to btree.json manifest",
+				"category": "BehaviorTree"
 			}
 		],
 		"menus": {
@@ -93,6 +98,10 @@
 			"editor/context": [
 				{
 					"command": "behaviortree.previewToSide",
+					"when": "resourceLangId == tree"
+				},
+				{
+					"command": "behaviortree.addAllUndeclaredToManifest",
 					"when": "resourceLangId == tree"
 				}
 			]
@@ -109,22 +118,24 @@
 		"test": "node ./out/test/runTest.js src/test/workspace"
 	},
 	"devDependencies": {
+		"@types/chai": "^4.2.11",
 		"@types/glob": "^7.1.1",
 		"@types/mocha": "^7.0.1",
 		"@types/node": "^12.11.7",
 		"@types/vscode": "^1.41.0",
-		"eslint": "^6.8.0",
-		"@typescript-eslint/parser": "^2.18.0",
 		"@typescript-eslint/eslint-plugin": "^2.18.0",
+		"@typescript-eslint/parser": "^2.18.0",
+		"chai": "^4.2.0",
+		"copyfiles": "2.2.0",
+		"download-file": "^0.1.5",
+		"eslint": "^6.8.0",
 		"glob": "^7.1.6",
 		"mocha": "^7.0.1",
 		"typescript": "^3.7.5",
-		"vscode-test": "^1.3.0",
-		"copyfiles": "2.2.0",
-		"download-file": "^0.1.5"
+		"vscode-test": "^1.3.0"
 	},
 	"dependencies": {
-		"behavior_tree_service": "^1.2.1"
+		"behavior_tree_service": "^2.0.0"
 	},
 	"extensionDependencies": [
 		"nin-jin.vscode-language-tree"

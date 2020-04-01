@@ -61,6 +61,11 @@ export class TreeWorkspace implements Disposable {
         return [...this.trees.values()];
     }
 
+    getTreeUris(): Uri[] {
+        return [...this.trees.keys()]
+            .map(treePath => Uri.parse(treePath));
+    }
+
     /**
      * Action names in this tree that are not among the declared actions in the manifest.
      * @param tree behavior tree to test
@@ -89,29 +94,65 @@ export class TreeWorkspace implements Disposable {
 
     /**
      * Adds action to the manifest.
-     * @param actionName action to add
+     * @param actionNames actions to add
      */
-    async addDeclaredAction(actionName: string): Promise<void> {
+    async addDeclaredActions(actionNames: string[]): Promise<void> {
         if (!this.actionsDeclared) {
             this.actionsDeclared = [];
         }
-        this.actionsDeclared?.push(actionName);
 
-        await this.saveManifest();
+        const newActions = actionNames
+            .filter(actionName => !this.actionsDeclared?.includes(actionName));
+
+        if (newActions.length > 0) {
+            this.actionsDeclared.push(...newActions);
+
+            await this.saveManifest();
+        }
     }
 
+    /**
+     * Adds action to the manifest.
+     * @param actionName action to add
+     */
+    async addDeclaredAction(actionName: string): Promise<void> {
+        this.addDeclaredActions([actionName]);
+    }
 
     /**
      * Adds condition to the manifest.
-     * @param conditionName action to add
+     * @param conditionName condition to add
      */
-    async addDeclaredCondition(conditionName: string): Promise<void> {
+    async addDeclaredConditions(conditionNames: string[]): Promise<void> {
         if (!this.conditionsDeclared) {
             this.conditionsDeclared = [];
         }
-        this.conditionsDeclared?.push(conditionName);
 
-        await this.saveManifest();
+        const newConditions = conditionNames
+            .filter(conditionName => !this.conditionsDeclared?.includes(conditionName));
+
+        if (newConditions.length > 0) {
+            this.conditionsDeclared.push(...newConditions);
+
+            await this.saveManifest();
+        }
+    }
+
+    /**
+     * Adds condition to the manifest.
+     * @param conditionName condition to add
+     */
+    async addDeclaredCondition(conditionName: string): Promise<void> {
+        this.addDeclaredConditions([conditionName]);
+    }
+
+    async addAllUndeclared(treeUri: Uri): Promise<void> {
+        const tree = this.getTree(treeUri);
+
+        if (tree) {
+            await this.addDeclaredActions([...tree.actions.keys()]);
+            await this.addDeclaredConditions([...tree.conditions.keys()]);
+        }
     }
 
     public getManifestPath(): string {
@@ -132,7 +173,7 @@ export class TreeWorkspace implements Disposable {
                 }
                 const actionsInManifest = Object.keys(manifest.actions);
                 this.getActionsDeclared()?.filter(declaredAction => !actionsInManifest.includes(declaredAction))
-                    .forEach(declaredAction => Object.defineProperty(manifest, declaredAction, {}));
+                    .forEach(declaredAction => manifest!.actions[declaredAction] = {});// Object.defineProperty(manifest?.actions, declaredAction, new Object(1)));
             }
         }
         // augment conditions in manifest
@@ -143,12 +184,12 @@ export class TreeWorkspace implements Disposable {
                 }
                 const conditionsInManifest = Object.keys(manifest.conditions);
                 this.getConditionsDeclared()?.filter(declaredCondition => !conditionsInManifest.includes(declaredCondition))
-                    .forEach(declaredCondition => Object.defineProperty(manifest, declaredCondition, {}));
+                    .forEach(declaredCondition => manifest!.conditions[declaredCondition] = {});
             }
         }
 
         // write it to file
-        await workspace.fs.writeFile(Uri.file(this.getManifestPath()), Buffer.from(JSON.stringify(manifest), 'utf-8'));
+        await workspace.fs.writeFile(Uri.file(this.getManifestPath()), Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8'));
         this._onInitialized.fire({ workspace: this });
     }
 
@@ -182,7 +223,7 @@ export class TreeWorkspace implements Disposable {
 
         // wait for all trees to be open and parsed
         await Promise.all(allTreeParsingPromises);
-        
+
         this.initialized = true;
         this._onInitialized.fire({ workspace: this });
     }
@@ -271,32 +312,13 @@ export class TreeWorkspace implements Disposable {
         this.conditionsUsed.push(...uniqueConditions);
     }
 
-
-    /**
-     * Awaits a `T` event.
-     * @param event event emitter to subscribe to 
-     * @param param1 action to execute after subscribing to the event and filter to apply to events
-     */
-    private async waitFor<T>(event: EventEmitter<T>, { action, filter }: { action?: () => void; filter?: (event: T) => boolean; } = {}): Promise<T> {
-        return new Promise<T>(resolve => {
-            const subscription = event.event(e => {
-                if ((filter && filter(e)) ?? true) {
-                    resolve(e);
-                    subscription.dispose();
-                }
-            });
-
-            action && action();
-        });
-    }
-
     /**
      * Awaits a `WorkspaceTreeEvent` change.
      * @param action action to perform after subscribing to the event
      * @param filter event filter
      */
     async change({ action, filter }: { action?: () => void; filter?: (event: WorkspaceTreeEvent) => boolean; } = {}): Promise<WorkspaceTreeEvent> {
-        return this.waitFor(this._onChanged, { action, filter });
+        return waitFor(this._onChanged.event, { action, filter });
     }
 
     /**
@@ -305,11 +327,29 @@ export class TreeWorkspace implements Disposable {
      * @param filter event filter
      */
     async initialization({ action, filter }: { action?: () => void; filter?: (event: WorkspaceEvent) => boolean; } = {}): Promise<WorkspaceEvent> {
-        return this.waitFor(this._onInitialized, { action, filter });
+        return waitFor(this._onInitialized.event, { action, filter });
     }
 
     dispose(): void {
         this._onChanged.dispose();
         this._onInitialized.dispose();
     }
+}
+
+/**
+ * Awaits a `T` event.
+ * @param event event emitter to subscribe to 
+ * @param param1 action to execute after subscribing to the event and filter to apply to events
+ */
+export async function waitFor<T>(event: Event<T>, { action, filter }: { action?: () => void; filter?: (event: T) => boolean; } = {}): Promise<T> {
+	return new Promise<T>(resolve => {
+		const subscription = event(e => {
+			if ((filter && filter(e)) ?? true) {
+				resolve(e);
+				subscription.dispose();
+			}
+		});
+
+		action && action();
+	});
 }

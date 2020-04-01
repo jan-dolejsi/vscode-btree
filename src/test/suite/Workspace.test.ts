@@ -4,9 +4,7 @@ import { suite, before, beforeEach, afterEach } from 'mocha';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as extension from '../../extension';
-import { TreeWorkspace } from '../../TreeWorkspace';
-import { AssertionError, fail } from 'assert';
-import { validateAndUpdateWorkspace, parser } from '../../extension';
+import { fail } from 'assert';
 import { openTreeDocument } from './testUtils';
 
 suite('Workspace Test Suite', () => {
@@ -17,7 +15,6 @@ suite('Workspace Test Suite', () => {
 
 	beforeEach(() => {
 		extension.treeWorkspaceRegistry.clear();
-		console.log('Workspace cleared.');
 	});
 
 	let filesToDelete = new Array<vscode.Uri>();
@@ -68,9 +65,10 @@ suite('Workspace Test Suite', () => {
 		const workspaceFolder = vscode.workspace.workspaceFolders[0];
 		const folder1Path = path.join(workspaceFolder.uri.fsPath, 'folder1');
 		const tree1Path = path.join(folder1Path, 'tree1.tree');
+		const tree1Uri = vscode.Uri.file(tree1Path);
 
 		const treeWorkspace = (await treeWorkspaceRegistry.change({
-			action: () => openTreeDocument(vscode.Uri.file(tree1Path)),
+			action: () => openTreeDocument(tree1Uri),
 			filter: treeEvent => treeEvent.uri.fsPath === tree1Path
 		})).workspace;
 
@@ -84,7 +82,7 @@ suite('Workspace Test Suite', () => {
 		expect(treeWorkspace.getActionsDeclared(), "actions declared").to.be.undefined;
 		expect(treeWorkspace.getConditionsDeclared(), "conditions declared").to.be.undefined;
 
-		const tree1 = treeWorkspace.getTree(vscode.Uri.file(tree1Path));
+		const tree1 = treeWorkspace.getTree(tree1Uri);
 		if (!tree1) { fail('Tree should be in the workspace'); }
 
 		await treeWorkspace.initialization({
@@ -97,15 +95,11 @@ suite('Workspace Test Suite', () => {
 		filesToDelete.push(vscode.Uri.file(treeWorkspace.getManifestPath()));
 		expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with empty manifest").to.be.empty;
 
-		await treeWorkspace.initialization({
-			action: () => treeWorkspace.addDeclaredAction('action1')
-		});
+		await treeWorkspace.addDeclaredAction('action1');
 
 		expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with manifest=[action1]").to.include.members(['action2']);
-
-		await treeWorkspace.initialization({
-			action: () => treeWorkspace.addDeclaredCondition('condition1')
-		});
+			
+		treeWorkspace.addDeclaredCondition('condition1');
 
 		expect(treeWorkspace.getUndeclaredConditions(tree1), "undeclared conditions").to.include.members(['condition2']);
 	});
