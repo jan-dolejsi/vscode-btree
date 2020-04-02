@@ -7,7 +7,7 @@ import * as extension from '../../extension';
 import { fail } from 'assert';
 import { openTreeDocument } from './testUtils';
 
-suite('Workspace Test Suite', () => {
+suite.skip('Workspace Test Suite', () => {
 
 	before(() => {
 		vscode.window.showInformationMessage('Start Workspace tests.');
@@ -55,7 +55,7 @@ suite('Workspace Test Suite', () => {
 		expect(treeWorkspace.getUndeclaredActions(tree1), "no undeclared actions").to.be.empty;
 	});
 
-	test.only('undeclared actions show up when manifest is created', async () => {
+	test('undeclared actions show up when manifest is created', async () => {
 
 		const treeWorkspaceRegistry = extension.treeWorkspaceRegistry;
 		if (!vscode.workspace.workspaceFolders) {
