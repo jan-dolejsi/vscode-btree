@@ -11,7 +11,7 @@ import { TreeCompletionItemProvider } from '../../TreeCompletionItemProvider';
 import { Uri } from 'vscode';
 import { openTreeDocument } from './testUtils';
 
-suite('Completion Item provider Test Suite', () => {
+suite.skip('Completion Item provider Test Suite', () => {
 
 	before(() => {
 		vscode.window.showInformationMessage('Start Completion Item tests.');

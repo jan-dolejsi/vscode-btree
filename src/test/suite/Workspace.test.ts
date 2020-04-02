@@ -55,7 +55,7 @@ suite('Workspace Test Suite', () => {
 		expect(treeWorkspace.getUndeclaredActions(tree1), "no undeclared actions").to.be.empty;
 	});
 
-	test('undeclared actions show up when manifest is created', async () => {
+	test.only('undeclared actions show up when manifest is created', async () => {
 
 		const treeWorkspaceRegistry = extension.treeWorkspaceRegistry;
 		if (!vscode.workspace.workspaceFolders) {
