@@ -7,7 +7,7 @@ import { ExtensionContext, TextDocument, window, ViewColumn, Uri, WebviewPanel, 
 import * as path from "path";
 import { getPreviewTemplate, CONTENT_FOLDER } from "./ContentUtils";
 
-const bt = require('behavior_tree_service');
+import { BehaviorTree } from 'behavior_tree_service';
 
 export class BehaviorTreePreviewGenerator extends Disposable {
 
@@ -106,7 +106,7 @@ export class BehaviorTreePreviewGenerator extends Disposable {
         }
         else {
             previewPanel.setNeedsRebuild(false);
-            const tree = bt.BehaviorTree.fromText(doc.getText());
+            const tree = BehaviorTree.fromText(doc.getText());
             previewPanel.getPanel().webview.postMessage({'command': 'treeChanged', 'tree': tree});
         }
     }

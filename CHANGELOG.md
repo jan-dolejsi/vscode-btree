@@ -1,5 +1,13 @@
 # Change Log
 
+## Unpublished
+
+Fixed
+
+- support for nested trees (action name validation accepts tree file names as valid action names)
+- updated to latest behavior_tree_service dependency with fixed action activation
+- fixed negated condition value flipping (double clicking on negated condition was not flipping its status)
+
 ## 1.4.x
 
 Added

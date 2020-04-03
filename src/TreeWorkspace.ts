@@ -75,8 +75,13 @@ export class TreeWorkspace implements Disposable {
 
         if (actionsDeclared === undefined) { return []; }
 
+        const treeNames = [...this.trees.keys()].
+            map(f => path.basename(f, '.tree'));
+
+        const supportedActions = actionsDeclared.concat(treeNames);
+
         return [...tree.actions.keys()]
-            .filter(actionUsed => !actionsDeclared.includes(actionUsed));
+            .filter(actionUsed => !supportedActions.includes(actionUsed));
     }
 
     /**
@@ -234,6 +239,7 @@ export class TreeWorkspace implements Disposable {
             if (manifest) {
                 this.actionsDeclared = manifest.actions && Object.keys(manifest.actions);
                 this.conditionsDeclared = manifest.conditions && Object.keys(manifest.conditions);
+                this._onInitialized.fire({ workspace: this });
             }
         }
         catch (ex) {

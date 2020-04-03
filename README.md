@@ -100,6 +100,10 @@ It may be used for documentation, or bindings to the system you want to automate
 The format of the file is JSON, so the same file may be used by other parts of the system
 to statically validate the system at continuous integration time or at start of execution.
 
+> As a special case, action names that match name of another behavior tree file
+> in the same folder (but without the `.tree` extension) are implicitly added to
+> the list of _declared_ actions.
+
 ## Release Notes
 
 See [CHANGELOG.md](CHANGELOG.md).

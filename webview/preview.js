@@ -54,7 +54,8 @@ function nodeDoubleClicked(node, shiftKey) {
     if (displayedTree) {
         switch (node.kind) {
             case CONDITION:
-                displayedTree.setConditionStatus(node.name, 1 - node.status());
+                const conditionStatus = node.hasNot ? 1 - node.status() : node.status();
+                displayedTree.setConditionStatus(node.name, 1 - conditionStatus);
                 if (treeRefresh) {
                     treeRefresh();
                 };
