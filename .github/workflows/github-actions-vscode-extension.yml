@@ -11,7 +11,7 @@ jobs:
   build:
     
     strategy:
-      fail-fast: false
+      fail-fast: false  # to see how the tests pan out on all platforms
       matrix:
         node-version: [10.16]
         os: [windows-latest, macos-latest, ubuntu-latest]
