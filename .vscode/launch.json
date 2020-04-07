@@ -38,7 +38,7 @@
 			"type": "chrome",
 			"request": "launch",
 			"name": "preview.html",
-			"file": "${workspaceFolder}/webview/preview.html",
+			"file": "${workspaceFolder}/webview/out/preview.html",
 		},
 	]
 }

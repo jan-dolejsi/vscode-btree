@@ -108,10 +108,10 @@
 		}
 	},
 	"scripts": {
-		"postinstall": "node download-d3.js",
-		"prepare": "copyfiles --error --verbose --flat ./node_modules/behavior_tree_service/btree*.js ./webview/behavior_tree/",
 		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
+		"prepare": "cd webview && npm install && cd ..",
+		"compile:webview": "cd webview && npm run compile && cd ..",
+		"compile": "tsc -p ./ && npm run compile:webview",
 		"lint": "eslint src --ext ts",
 		"watch": "tsc -watch -p ./",
 		"pretest": "npm run compile && npm run lint",
@@ -126,8 +126,6 @@
 		"@typescript-eslint/eslint-plugin": "^2.18.0",
 		"@typescript-eslint/parser": "^2.18.0",
 		"chai": "^4.2.0",
-		"copyfiles": "2.2.0",
-		"download-file": "^0.1.5",
 		"eslint": "^6.8.0",
 		"glob": "^7.1.6",
 		"mocha": "^7.0.1",
@@ -135,7 +133,7 @@
 		"vscode-test": "^1.3.0"
 	},
 	"dependencies": {
-		"behavior_tree_service": "^2.1.0"
+		"behavior_tree_service": "^2.1.1"
 	},
 	"extensionDependencies": [
 		"nin-jin.vscode-language-tree"

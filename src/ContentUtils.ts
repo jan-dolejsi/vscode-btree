@@ -7,7 +7,7 @@ import { ExtensionContext } from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 
-export const CONTENT_FOLDER = "webview";
+export const CONTENT_FOLDER = path.join("webview", "out");
 
 export async function getPreviewTemplate(context: ExtensionContext, templateName: string): Promise<string> {
     let previewPath = context.asAbsolutePath(path.join(CONTENT_FOLDER, templateName));
