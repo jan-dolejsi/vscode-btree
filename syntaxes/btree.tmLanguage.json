@@ -1,0 +1,75 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Behavior Tree",
+	"patterns": [
+		{
+			"include": "#line"
+		}
+	],
+	"repository": {
+		"line": {
+			"begin": "^\t*",
+			"end": "\\n",
+			"name": "tree.meta.structure.list",
+			"patterns": [
+				{
+					"match": "[\\|\\t ]+",
+					"name": "markup.punctuation.tree.indentation"
+				},
+				{
+					"match": "(->|\\?|=\\d+|!)",
+					"name": "keyword.control.tree"
+				},
+				{
+					"include": "#action"
+				},
+				{
+					"include": "#comments"
+				}
+			]
+		},
+		"action": {
+			"patterns": [
+				{
+					"begin": "\\[",
+					"end": "\\]",
+					"name": "entity.name.function"
+				}
+			]
+		},
+		"condition": {
+			"patterns": [
+				{
+					"begin": "\\(",
+					"end": "\\)",
+					"name": "variable.condition"
+				}
+			]
+		},
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line",
+					"match": ";;.*$"
+				}
+			]
+		},
+		"indentation": {
+			"patterns": [
+				{
+					"name": "meta.indentation",
+					"match": "|"
+				}
+			]
+		},
+		"unexpected": {
+			"patterns": [
+				{
+					"name": "invalid.illegal",
+					"match": ".*"
+				}
+			]
+		}
+	},
+	"scopeName": "source.tree"
+}

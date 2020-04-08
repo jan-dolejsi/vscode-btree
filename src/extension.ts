@@ -16,7 +16,7 @@ export const TREE = 'tree';
 export const parser = new TreeParser();
 export const treeWorkspaceRegistry = new TreeWorkspaceRegistry(parser);
 
-export function activate(context: ExtensionContext) {
+export function activate(context: ExtensionContext): void {
 
     console.log('"vscode-btree" was activated');
     const behaviorTreePreviewGenerator = new BehaviorTreePreviewGenerator(context);
@@ -49,14 +49,14 @@ export function activate(context: ExtensionContext) {
     }));
 
     const previewToSide = commands.registerCommand("behaviortree.previewToSide", async (treeDocumentUri: Uri) => {
-        let treeDocument = await getTreeDocument(treeDocumentUri);
+        const treeDocument = await getTreeDocument(treeDocumentUri);
         if (treeDocument) {
             return behaviorTreePreviewGenerator.revealOrCreatePreview(treeDocument, ViewColumn.Beside);
         }
     });
 
     const preview = commands.registerCommand("behaviortree.preview", async (treeDocumentUri: Uri) => {
-        let treeDocument = await getTreeDocument(treeDocumentUri);
+        const treeDocument = await getTreeDocument(treeDocumentUri);
         if (treeDocument) {
             return behaviorTreePreviewGenerator.revealOrCreatePreview(treeDocument, ViewColumn.Active);
         }
@@ -124,7 +124,8 @@ async function getTreeDocument(treeDocumentUri: Uri | undefined): Promise<TextDo
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() { }
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+export function deactivate(): void { }
 
 function languageConfiguration(): LanguageConfiguration {
     return {

@@ -1,12 +1,19 @@
 # Change Log
 
-## Unpublished
+## 1.5.x
+
+New
+
+- Removed dependency on `nin-jin.vscode-language-tree` extension for syntax highlighting (you may uninstall it).
+- Syntax highlighting
+- Added JSON schema for `btrees.json` file. This serves as auto-completion and documentation.
 
 Fixed
 
 - support for nested trees (action name validation accepts tree file names as valid action names)
 - updated to latest behavior_tree_service dependency with fixed action activation
 - fixed negated condition value flipping (double clicking on negated condition was not flipping its status)
+- More tests and stricter eslint clean-up
 
 ## 1.4.x
 

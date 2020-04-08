@@ -3,7 +3,7 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-import { OnTypeFormattingEditProvider, TextDocument, Position, FormattingOptions, CancellationToken, ProviderResult, TextEdit, Range, window, Selection, commands, workspace, TextEditor, TextEditorOptions } from 'vscode';
+import { OnTypeFormattingEditProvider, TextDocument, Position, FormattingOptions, CancellationToken, ProviderResult, TextEdit, Range, window, Selection, commands, TextEditor, TextEditorOptions } from 'vscode';
 import { TreeParser } from './TreeParser';
 
 export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditProvider {
@@ -18,7 +18,8 @@ export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditPro
             case '\n':
                 return this.repeatIndent(document, position, options);
             case '\b':
-                return this.handleBackspace(document, position, options);
+                // VS Code on-type formatting is unable to handle backspace, so this never fires
+                return this.handleBackspace(document, position);
             default:
                 return undefined;
         }
@@ -34,7 +35,7 @@ export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditPro
     repeatIndent(document: TextDocument, position: Position, options: FormattingOptions): TextEdit[] {
 
         const previousLineText = document.lineAt(position.translate({ lineDelta: -1 }).line).text;
-        var [previousLineIndents, _] = TreeParser.splitSourceLine(previousLineText);
+        let [previousLineIndents] = TreeParser.splitSourceLine(previousLineText);
 
         if (TreeParser.isParentNode(previousLineText)) {
             previousLineIndents = TreeParser.indent(previousLineIndents, options);
@@ -46,14 +47,20 @@ export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditPro
         )];
     }
 
-    handleBackspace(document: TextDocument, position: Position, options: FormattingOptions): ProviderResult<TextEdit[]> {
-        const lineRange = new Range(
-            position.with({ character: 0 }),
-            position.with({ character: Number.POSITIVE_INFINITY }));
+    /**
+     * Removes one indentation
+     * @param document document
+     * @param position position where backspace was pressed
+     */
+    handleBackspace(document: TextDocument, position: Position): ProviderResult<TextEdit[]> {
 
         const lineText = document.lineAt(position.line).text;
 
         const leftPart = lineText.substr(0, position.character);
+
+        const [indents, rest] = TreeParser.splitSourceLine(lineText);
+
+        console.log(indents+rest);
 
         // is on the left hand side only indent code?
         if (leftPart.match(/^[|\s]+$/)) {
@@ -63,8 +70,6 @@ export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditPro
                 ""
             )];
         }
-
-        var [indents, rest] = TreeParser.splitSourceLine(lineText);
     }
 
     static backspace(): Thenable<unknown> {
@@ -159,7 +164,7 @@ export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditPro
     static async indentLines(document: TextDocument, selectedLines: Set<number>, formattingOptions: FormattingOptions): Promise<void> {
         for (const line of selectedLines) {
             const lineText = document.lineAt(line).text;
-            const [indentations, _] = TreeParser.splitSourceLine(lineText);
+            const [indentations] = TreeParser.splitSourceLine(lineText);
 
             const success = await window.activeTextEditor?.edit(editBuilder => {
                 editBuilder.insert(new Position(line, indentations.length), '|' + TreeParser.tab(formattingOptions));
@@ -171,7 +176,7 @@ export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditPro
         }
     }
 
-    private static getSelectedLines(editor: TextEditor) {
+    private static getSelectedLines(editor: TextEditor): Set<number> {
         return new Set<number>(editor.selections
             .map(selection => range(selection.start.line, TreeOnTypeFormattingEditProvider.getAdjustedEndLine(selection)))
             .reduce((prev, cur) => prev.concat(cur), []));
@@ -189,17 +194,12 @@ export class TreeOnTypeFormattingEditProvider implements OnTypeFormattingEditPro
     static async unindent(): Promise<void> {
         if (window.activeTextEditor) {
             const document = window.activeTextEditor.document;
-            const options = window.activeTextEditor.options;
-            const formattingOptions: FormattingOptions = {
-                insertSpaces: options.insertSpaces as boolean,
-                tabSize: options.tabSize as number
-            };
 
             const selectedLines = TreeOnTypeFormattingEditProvider.getSelectedLines(window.activeTextEditor);
 
             for (const line of selectedLines) {
                 const lineText = document.lineAt(line).text;
-                const [indentations, _] = TreeParser.splitSourceLine(lineText);
+                const [indentations] = TreeParser.splitSourceLine(lineText);
                 const lastPipeIndex = indentations.lastIndexOf('|');
 
                 const success = await window.activeTextEditor?.edit(editBuilder => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* --------------------------------------------------------------------------------------------
  * Copyright (c) Jan Dolejsi 2020. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
@@ -8,6 +9,10 @@ import * as path from "path";
 import { getPreviewTemplate, CONTENT_FOLDER } from "./ContentUtils";
 
 import { BehaviorTree } from 'behavior_tree_service';
+
+interface CommandMessage {
+    command: string;
+}
 
 export class BehaviorTreePreviewGenerator extends Disposable {
 
@@ -20,7 +25,7 @@ export class BehaviorTreePreviewGenerator extends Disposable {
     }
 
     setNeedsRebuild(uri: Uri, needsRebuild: boolean): void {
-        let panel = this.webviewPanels.get(uri);
+        const panel = this.webviewPanels.get(uri);
 
         if (panel) {
             panel.setNeedsRebuild(needsRebuild);
@@ -65,7 +70,7 @@ export class BehaviorTreePreviewGenerator extends Disposable {
             // when the user closes the tab, remove the panel
             previewPanel.getPanel().onDidDispose(() => this.webviewPanels.delete(doc.uri), undefined, this.context.subscriptions);
             // when the pane becomes visible again, refresh it
-            previewPanel.getPanel().onDidChangeViewState(_ => this.rebuild());
+            previewPanel.getPanel().onDidChangeViewState(() => this.rebuild());
 
             previewPanel.getPanel().webview.onDidReceiveMessage(e => this.handleMessage(previewPanel!, e), undefined, this.context.subscriptions);
         }
@@ -73,7 +78,7 @@ export class BehaviorTreePreviewGenerator extends Disposable {
         this.updateContent(previewPanel, doc);
     }
 
-    async handleMessage(previewPanel: PreviewPanel, message: any): Promise<void> {
+    async handleMessage(previewPanel: PreviewPanel, message: CommandMessage): Promise<void> {
         console.log(`Message received from the webview: ${message.command}`);
 
         switch (message.command) {
@@ -86,9 +91,9 @@ export class BehaviorTreePreviewGenerator extends Disposable {
     }
 
     createPreviewPanel(doc: TextDocument, displayColumn: ViewColumn): PreviewPanel {
-        let previewTitle = `Preview: '${path.basename(window.activeTextEditor?.document.fileName ?? 'no active editor')}'`;
+        const previewTitle = `Preview: '${path.basename(window.activeTextEditor?.document.fileName ?? 'no active editor')}'`;
 
-        let webViewPanel = window.createWebviewPanel('behaviortreePreview', previewTitle, displayColumn, {
+        const webViewPanel = window.createWebviewPanel('behaviortreePreview', previewTitle, displayColumn, {
             enableFindWidget: true,
             enableScripts: true,
             localResourceRoots: [Uri.file(path.join(this.context.extensionPath, CONTENT_FOLDER))]
@@ -99,7 +104,7 @@ export class BehaviorTreePreviewGenerator extends Disposable {
         return new PreviewPanel(doc.uri, webViewPanel);
     }
 
-    async updateContent(previewPanel: PreviewPanel, doc: TextDocument) {
+    async updateContent(previewPanel: PreviewPanel, doc: TextDocument): Promise<void> {
         if (!previewPanel.getPanel().webview.html) {
             previewPanel.getPanel().webview.html = "Please wait...";
             previewPanel.getPanel().webview.html = await this.getPreviewHtml(previewPanel, doc);
@@ -111,13 +116,14 @@ export class BehaviorTreePreviewGenerator extends Disposable {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private async getPreviewHtml(previewPanel: PreviewPanel, doc: TextDocument): Promise<string> {
         let templateHtml = await getPreviewTemplate(this.context, "preview.html");
 
         // change resource URLs to vscode-resource:
         templateHtml = templateHtml.replace(/<script (defer\s+)?src="(.+)">/g, (scriptTag, defer, srcPath) => {
             scriptTag;
-            let resource = Uri.file(
+            const resource = Uri.file(
                 path.join(this.context.extensionPath,
                     CONTENT_FOLDER,
                     srcPath))
@@ -139,7 +145,7 @@ class PreviewPanel {
         this.panel.reveal(displayColumn);
     }
 
-    setNeedsRebuild(needsRebuild: boolean) {
+    setNeedsRebuild(needsRebuild: boolean): void {
         this.needsRebuild = needsRebuild;
     }
 
@@ -151,7 +157,7 @@ class PreviewPanel {
         return this.panel;
     }
 
-    postMessage(message: any): Thenable<boolean> {
+    postMessage(message: never): Thenable<boolean> {
         return this.panel.webview.postMessage(message);
     }
 }

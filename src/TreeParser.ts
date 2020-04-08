@@ -58,7 +58,7 @@ export class TreeParser {
         return !!TreeParser.getParentNode(text);
     }
 
-    static tab(options: FormattingOptions) {
+    static tab(options: FormattingOptions): string {
         return options.insertSpaces ? " ".repeat(options.tabSize) : "\t";
     }
 

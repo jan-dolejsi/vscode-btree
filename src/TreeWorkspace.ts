@@ -9,6 +9,8 @@ import * as path from 'path';
 import { TreeParser } from './TreeParser';
 import { parser } from './extension';
 
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 export interface WorkspaceTreeEvent {
     workspace: TreeWorkspace;
     uri: Uri;
@@ -20,7 +22,9 @@ export interface WorkspaceEvent {
 }
 
 interface TreeWorkspaceManifest {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     actions?: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     conditions?: any;
 }
 
@@ -44,6 +48,7 @@ export class TreeWorkspace implements Disposable {
 
     private _onChanged = new EventEmitter<WorkspaceTreeEvent>();
     private _onInitialized = new EventEmitter<WorkspaceEvent>();
+    private _onManifestChanged = new EventEmitter<WorkspaceEvent>();
 
     private initialized = false;
 
@@ -206,19 +211,23 @@ export class TreeWorkspace implements Disposable {
         return this._onInitialized.event;
     }
 
+    public get onManifestChanged(): Event<WorkspaceEvent> {
+        return this._onManifestChanged.event;
+    }
+
     public isInitialized(): boolean {
         return this.initialized;
     }
 
     async initialize(): Promise<void> {
-        this.initializeManifest();
+        this.reloadManifest();
 
         const manifestWatcher =
             workspace.createFileSystemWatcher(this.manifestPath);
 
-        manifestWatcher.onDidChange(() => this.initializeManifest());
-        manifestWatcher.onDidCreate(() => this.initializeManifest());
-        manifestWatcher.onDidDelete(() => this.initializeManifest());
+        manifestWatcher.onDidChange(() => this.reloadManifest());
+        manifestWatcher.onDidCreate(() => this.reloadManifest());
+        manifestWatcher.onDidDelete(() => this.reloadManifest());
 
         const relativeGlob = workspace.asRelativePath(path.join(this.folderPath, '*.tree'));
         const allTreeUris = await workspace.findFiles(relativeGlob);
@@ -233,13 +242,13 @@ export class TreeWorkspace implements Disposable {
         this._onInitialized.fire({ workspace: this });
     }
 
-    async initializeManifest(): Promise<void> {
+    async reloadManifest(): Promise<void> {
         try {
             const manifest = await this.readManifest();
             if (manifest) {
                 this.actionsDeclared = manifest.actions && Object.keys(manifest.actions);
                 this.conditionsDeclared = manifest.conditions && Object.keys(manifest.conditions);
-                this._onInitialized.fire({ workspace: this });
+                this._onManifestChanged.fire({ workspace: this });
             }
         }
         catch (ex) {
@@ -297,7 +306,7 @@ export class TreeWorkspace implements Disposable {
         });
     }
 
-    updateActionsUsed() {
+    updateActionsUsed(): void {
         const uniqueActions = new Set<string>();
         [...this.trees.values()]
             .map(tree =>
@@ -307,7 +316,7 @@ export class TreeWorkspace implements Disposable {
         this.actionsUsed.length = 0;
         this.actionsUsed.push(...uniqueActions);
     }
-    updateConditionsUsed() {
+    updateConditionsUsed(): void {
         const uniqueConditions = new Set<string>();
         [...this.trees.values()]
             .map(tree =>
@@ -323,7 +332,7 @@ export class TreeWorkspace implements Disposable {
      * @param action action to perform after subscribing to the event
      * @param filter event filter
      */
-    async change({ action, filter }: { action?: () => void; filter?: (event: WorkspaceTreeEvent) => boolean; } = {}): Promise<WorkspaceTreeEvent> {
+    async change({ action, filter }: { action?: () => void; filter?: (event: WorkspaceTreeEvent) => boolean } = {}): Promise<WorkspaceTreeEvent> {
         return waitFor(this._onChanged.event, { action, filter });
     }
 
@@ -332,7 +341,7 @@ export class TreeWorkspace implements Disposable {
      * @param action action to perform after subscribing to the event
      * @param filter event filter
      */
-    async initialization({ action, filter }: { action?: () => void; filter?: (event: WorkspaceEvent) => boolean; } = {}): Promise<WorkspaceEvent> {
+    async initialization({ action, filter }: { action?: () => void; filter?: (event: WorkspaceEvent) => boolean } = {}): Promise<WorkspaceEvent> {
         return waitFor(this._onInitialized.event, { action, filter });
     }
 
@@ -347,7 +356,7 @@ export class TreeWorkspace implements Disposable {
  * @param event event emitter to subscribe to 
  * @param param1 action to execute after subscribing to the event and filter to apply to events
  */
-export async function waitFor<T>(event: Event<T>, { action, filter }: { action?: () => void; filter?: (event: T) => boolean; } = {}): Promise<T> {
+export async function waitFor<T>(event: Event<T>, { action, filter }: { action?: () => void; filter?: (event: T) => boolean } = {}): Promise<T> {
 	return new Promise<T>(resolve => {
 		const subscription = event(e => {
 			if ((filter && filter(e)) ?? true) {

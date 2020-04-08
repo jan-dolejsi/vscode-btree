@@ -16,6 +16,7 @@ export class TreeCodeActionProvider implements CodeActionProvider {
 
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     provideCodeActions(document: TextDocument, range: Range | Selection, context: CodeActionContext, token: CancellationToken): ProviderResult<(Command | CodeAction)[]> {
         return context.diagnostics
             .filter(diagnostic => isDiagnosticCode(diagnostic.code))
@@ -72,6 +73,7 @@ export interface DiagnosticCode {
     treeWorkspace: TreeWorkspace;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isDiagnosticCode(code: any): code is DiagnosticCode {
     return 'undeclaredName' in code;
 }

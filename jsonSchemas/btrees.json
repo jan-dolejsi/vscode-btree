@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "http://ai-schemas.com/btrees.json",
+  "type": "object",
+  "title": "Behavior Tree manifest",
+  "description": "JSON document for declaring supported action and condition names along with their documentation or free-form configuration.",
+  "properties": {
+      "actions": {
+          "$id": "#/properties/actions",
+          "type": "object",
+          "title": "Actions",
+          "description": "Declare supported action names here.",
+          "default": {},
+          "examples": [
+              {
+                  "action1": {
+                      "description": "Some documentation..."
+                  },
+                  "action2": {}
+              }
+          ]
+      },
+      "conditions": {
+          "$id": "#/properties/conditions",
+          "type": "object",
+          "title": "Conditions",
+          "description": "Declare supported condition names here.",
+          "default": {},
+          "examples": [
+              {
+                  "condition1": {},
+                  "condition2": {}
+              }
+          ]
+      }
+  }
+}

@@ -5,23 +5,32 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as extension from '../../extension';
 import { fail } from 'assert';
-import { openTreeDocument } from './testUtils';
+import { openTreeDocument, activateExtension, deleteTempFiles } from './testUtils';
 
-suite.skip('Workspace Test Suite', () => {
+suite('Workspace Test Suite', () => {
 
-	before(() => {
+	before(async () => {
 		vscode.window.showInformationMessage('Start Workspace tests.');
+		await activateExtension();
 	});
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		extension.treeWorkspaceRegistry.clear();
+
+		if (!vscode.workspace.workspaceFolders) {
+			assert.fail('No workspace folder open');
+		}
+
+		const workspaceFolder = vscode.workspace.workspaceFolders[0];
+
+		filesToDelete.push(vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'folder1', 'btrees.json')));
+		await deleteTempFiles(filesToDelete);
 	});
 
-	let filesToDelete = new Array<vscode.Uri>();
+	const filesToDelete = new Array<vscode.Uri>();
 
 	afterEach(async () => {
-		await Promise.all(filesToDelete.map(fileUri => vscode.workspace.fs.delete(fileUri)));
-		filesToDelete.length = 0;
+		await deleteTempFiles(filesToDelete);
 	});
 
 	test('initializes in folder without manifest', async () => {
@@ -36,7 +45,7 @@ suite.skip('Workspace Test Suite', () => {
 		const tree1Path = path.join(folder1Path, 'tree1.tree');
 
 		const treeWorkspace = (await treeWorkspaceRegistry.change({
-			action: () => openTreeDocument(vscode.Uri.file(tree1Path)),
+			action: async () => await openTreeDocument(vscode.Uri.file(tree1Path)),
 			filter: treeEvent => treeEvent.uri.fsPath === tree1Path
 		})).workspace;
 
@@ -68,7 +77,7 @@ suite.skip('Workspace Test Suite', () => {
 		const tree1Uri = vscode.Uri.file(tree1Path);
 
 		const treeWorkspace = (await treeWorkspaceRegistry.change({
-			action: () => openTreeDocument(tree1Uri),
+			action: async () => await openTreeDocument(tree1Uri),
 			filter: treeEvent => treeEvent.uri.fsPath === tree1Path
 		})).workspace;
 
@@ -85,23 +94,27 @@ suite.skip('Workspace Test Suite', () => {
 		const tree1 = treeWorkspace.getTree(tree1Uri);
 		if (!tree1) { fail('Tree should be in the workspace'); }
 
-		await treeWorkspace.initialization({
-			action: () => {
-				// create empty manifest file
-				treeWorkspace.saveManifest();
-			}
-		});
+		try {
+			await treeWorkspace.initialization({
+				action: async () => {
+					// create empty manifest file
+					filesToDelete.push(vscode.Uri.file(treeWorkspace.getManifestPath()));
+					await treeWorkspace.saveManifest();
+				}
+			});
 
-		filesToDelete.push(vscode.Uri.file(treeWorkspace.getManifestPath()));
-		expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with empty manifest").to.be.empty;
+			expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with empty manifest").to.be.empty;
 
-		await treeWorkspace.addDeclaredAction('action1');
+			await treeWorkspace.addDeclaredAction('action1');
 
-		expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with manifest=[action1]").to.include.members(['action2']);
-			
-		treeWorkspace.addDeclaredCondition('condition1');
+			expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with manifest=[action1]").to.include.members(['action2']);
 
-		expect(treeWorkspace.getUndeclaredConditions(tree1), "undeclared conditions").to.include.members(['condition2']);
+			treeWorkspace.addDeclaredCondition('condition1');
+
+			expect(treeWorkspace.getUndeclaredConditions(tree1), "undeclared conditions").to.include.members(['condition2']);
+		} finally {
+			await deleteTempFiles(filesToDelete);
+		}
 	});
 
 	test('initializes in folder with manifest', async () => {
@@ -115,7 +128,7 @@ suite.skip('Workspace Test Suite', () => {
 		const tree1Path = path.join(folder2Path, 'tree1.tree');
 
 		const treeWorkspace = (await treeWorkspaceRegistry.change({
-			action: () => openTreeDocument(vscode.Uri.file(tree1Path)),
+			action: async () => await openTreeDocument(vscode.Uri.file(tree1Path)),
 			filter: treeEvent => treeEvent.uri.fsPath === tree1Path
 		})).workspace;
 
@@ -141,7 +154,7 @@ suite.skip('Workspace Test Suite', () => {
 		const tree1Path = path.join(folder3Path, 'tree1.tree');
 
 		const treeWorkspace = (await treeWorkspaceRegistry.change({
-			action: () => openTreeDocument(vscode.Uri.file(tree1Path)),
+			action: async () => await openTreeDocument(vscode.Uri.file(tree1Path)),
 			filter: treeEvent => treeEvent.uri.fsPath === tree1Path
 		})).workspace;
 

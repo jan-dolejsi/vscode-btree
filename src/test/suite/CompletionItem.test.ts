@@ -4,24 +4,23 @@ import { suite, before, beforeEach, afterEach } from 'mocha';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as extension from '../../extension';
-import { TreeWorkspace } from '../../TreeWorkspace';
-import { AssertionError, fail } from 'assert';
-import { validateAndUpdateWorkspace, parser, TREE } from '../../extension';
+import { AssertionError } from 'assert';
 import { TreeCompletionItemProvider } from '../../TreeCompletionItemProvider';
 import { Uri } from 'vscode';
-import { openTreeDocument } from './testUtils';
+import { activateExtension } from './testUtils';
 
-suite.skip('Completion Item provider Test Suite', () => {
+suite('Completion Item provider Test Suite', () => {
 
-	before(() => {
+	before(async () => {
 		vscode.window.showInformationMessage('Start Completion Item tests.');
+		await activateExtension();
 	});
 
 	beforeEach(() => {
 		extension.treeWorkspaceRegistry.clear();
 	});
 
-	let filesToDelete = new Array<vscode.Uri>();
+	const filesToDelete = new Array<vscode.Uri>();
 
 	afterEach(async () => {
 		await Promise.all(filesToDelete.map(fileUri => vscode.workspace.fs.delete(fileUri)));
@@ -37,7 +36,6 @@ suite.skip('Completion Item provider Test Suite', () => {
 
 		const workspaceFolder = vscode.workspace.workspaceFolders[0];
 		const folder1Path = path.join(workspaceFolder.uri.fsPath, 'folder1');
-		const tree1Path = path.join(folder1Path, 'tree1.tree');
 		const newTreePath = path.join(folder1Path, 'newTree.tree');
 		const newTreeUri = Uri.file(newTreePath);
 		const newTreeContent = '->\n|\t';
@@ -71,7 +69,7 @@ suite.skip('Completion Item provider Test Suite', () => {
 
 			expect(completionItems, "completion item").to.not.be.undefined;
 			expect(completionItems?.map(c => c.label), "completion items").to.include.members(['condition1', 'condition2']);
-			expect(completionItems!, "completion item count").to.have.lengthOf(2);
+			expect(completionItems, "completion item count").to.have.lengthOf(2);
 		}
 
 		{
@@ -85,7 +83,7 @@ suite.skip('Completion Item provider Test Suite', () => {
 
 			expect(completionItems, "completion item").to.not.be.undefined;
 			expect(completionItems?.map(c => c.label), "completion items").to.include.members(['action1', 'action2']);
-			expect(completionItems!, "completion item count").to.have.lengthOf(2);
+			expect(completionItems, "completion item count").to.have.lengthOf(2);
 		}
 
 		{
@@ -114,7 +112,6 @@ suite.skip('Completion Item provider Test Suite', () => {
 
 		const workspaceFolder = vscode.workspace.workspaceFolders[0];
 		const folder2Path = path.join(workspaceFolder.uri.fsPath, 'folder2');
-		const tree1Path = path.join(folder2Path, 'tree1.tree');
 		const newTreePath = path.join(folder2Path, 'newTree.tree');
 		const newTreeUri = Uri.file(newTreePath);
 		const newTreeContent = '->\n|\t';
@@ -148,7 +145,7 @@ suite.skip('Completion Item provider Test Suite', () => {
 
 			expect(completionItems, "completion item").to.not.be.undefined;
 			expect(completionItems?.map(c => c.label), "completion items").to.include.members(['condition1']);
-			expect(completionItems!, "completion item count").to.have.lengthOf(1);
+			expect(completionItems, "completion item count").to.have.lengthOf(1);
 		}
 
 		{
@@ -162,7 +159,7 @@ suite.skip('Completion Item provider Test Suite', () => {
 
 			expect(completionItems, "completion item").to.not.be.undefined;
 			expect(completionItems?.map(c => c.label), "completion items").to.include.members(['action1']);
-			expect(completionItems!, "completion item count").to.have.lengthOf(1);
+			expect(completionItems, "completion item count").to.have.lengthOf(1);
 		}
 
 		{

@@ -18,6 +18,19 @@
 			"runOptions": {
 				"runOn": "folderOpen"
 			}
+		},
+		{
+			"type": "npm",
+			"script": "watch",
+			"path": "webview/",
+			"problemMatcher": [
+				"$tsc-watch"
+			],
+			"group": "build",
+			"isBackground": true,
+			"runOptions": {
+				"runOn": "folderOpen"
+			}
 		}
 	]
 }

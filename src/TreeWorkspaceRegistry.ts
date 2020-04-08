@@ -6,7 +6,7 @@
 'use strict';
 
 import * as path from 'path';
-import { Uri, EventEmitter, Event, Disposable, languages, DiagnosticCollection, Diagnostic, DiagnosticSeverity, Range, TextDocument, workspace, DiagnosticTag, DiagnosticRelatedInformation, Location, Position } from 'vscode';
+import { Uri, EventEmitter, Event, Disposable, languages, DiagnosticCollection, Diagnostic, DiagnosticSeverity, Range, TextDocument, workspace, DiagnosticRelatedInformation, Location, Position } from 'vscode';
 import { TreeWorkspace, WorkspaceTreeEvent, WorkspaceEvent, waitFor } from './TreeWorkspace';
 import { BehaviorTree, Action, Condition, Node } from 'behavior_tree_service';
 import { TreeParser } from './TreeParser';
@@ -97,6 +97,7 @@ export class TreeWorkspaceRegistry implements Disposable {
     private createDiagnostic(node: Node, document: TextDocument, workspace: TreeWorkspace): Diagnostic {
         const diagnostic = new Diagnostic(this.toRange(node, document), `Undeclared ${node.kind} ${node.name}`, DiagnosticSeverity.Warning);
         diagnostic.source = 'btree';
+        // todo: instead of showing the position 0,0, use https://www.npmjs.com/package/jsonc-parser
         diagnostic.relatedInformation = [
             new DiagnosticRelatedInformation(new Location(Uri.file(workspace.getManifestPath()), new Position(0, 0)), 'See supported action/conditions.')
         ];
@@ -118,7 +119,7 @@ export class TreeWorkspaceRegistry implements Disposable {
         if (firstCharacter > -1) {
             lastCharacter = firstCharacter + node.name.length;
         } else {
-            const [indentations, _] = TreeParser.splitSourceLine(lineText.text);
+            const [indentations] = TreeParser.splitSourceLine(lineText.text);
             firstCharacter = indentations.length;
             lastCharacter = Number.MAX_VALUE;
         }
@@ -129,7 +130,7 @@ export class TreeWorkspaceRegistry implements Disposable {
      * Awaits a `WorkspaceTreeEvent` change.
      * @param param0 action to execute after subscribing to the event and filter to apply to events
      */
-    async change({ action, filter }: { action?: () => void; filter?: (event: WorkspaceTreeEvent) => boolean; } = {}): Promise<WorkspaceTreeEvent> {
+    async change({ action, filter }: { action?: () => void; filter?: (event: WorkspaceTreeEvent) => boolean } = {}): Promise<WorkspaceTreeEvent> {
         return waitFor(this._onChanged.event, { action, filter });
     }
 
@@ -137,11 +138,11 @@ export class TreeWorkspaceRegistry implements Disposable {
      * Awaits a `WorkspaceEvent` initialization change.
      * @param param0 action to execute after subscribing to the event and filter to apply to events
      */
-    async initialization({ action, filter }: { action?: () => void; filter?: (event: WorkspaceEvent) => boolean; } = {}): Promise<WorkspaceEvent> {
+    async initialization({ action, filter }: { action?: () => void; filter?: (event: WorkspaceEvent) => boolean } = {}): Promise<WorkspaceEvent> {
         return waitFor(this._onWorkspaceInitialized.event, { action, filter });
     }
 
-    clear() {
+    clear(): void {
         this.workspaces.forEach(workspace => workspace.dispose());
         this.workspaces.clear();
     }

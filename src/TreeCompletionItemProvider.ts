@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict';
 import * as path from 'path';
-import { CompletionItemProvider, TextDocument, Position, CancellationToken, CompletionContext, ProviderResult, CompletionItem, CompletionList, CompletionItemKind, CompletionTriggerKind } from 'vscode';
+import { CompletionItemProvider, TextDocument, Position, CancellationToken, CompletionContext, CompletionItem, CompletionItemKind, CompletionTriggerKind } from 'vscode';
 import { TreeWorkspaceRegistry } from './TreeWorkspaceRegistry';
 
 export class TreeCompletionItemProvider implements CompletionItemProvider {
@@ -13,8 +13,8 @@ export class TreeCompletionItemProvider implements CompletionItemProvider {
     }
 
     provideCompletionItems(document: TextDocument, position: Position, token: CancellationToken, context: CompletionContext): CompletionItem[] | undefined {
-        let folderPath = path.dirname(document.uri.fsPath);
-        let workspace = this.treeWorkspaceRegistry.getWorkspace(folderPath);
+        const folderPath = path.dirname(document.uri.fsPath);
+        const workspace = this.treeWorkspaceRegistry.getWorkspace(folderPath);
 
         if (!workspace) { return undefined; }
 
