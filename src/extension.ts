@@ -107,6 +107,7 @@ export function activate(context: ExtensionContext): void {
 
     const symbolProvider = new SymbolProvider(treeWorkspaceRegistry);
     context.subscriptions.push(languages.registerDefinitionProvider(TREE, symbolProvider));
+    context.subscriptions.push(languages.registerReferenceProvider(TREE, symbolProvider));
 
     // when the editor re-opens a workspace, this will re-validate the visible documents
     workspace.textDocuments

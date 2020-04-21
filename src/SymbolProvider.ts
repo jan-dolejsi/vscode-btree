@@ -3,21 +3,47 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 'use strict';
-import { DefinitionProvider, TextDocument, Position, CancellationToken, Location, Uri, workspace, Range } from 'vscode';
+import { DefinitionProvider, TextDocument, Position, CancellationToken, Location, Uri, workspace, Range, ReferenceProvider, ReferenceContext } from 'vscode';
 import { TreeWorkspaceRegistry } from './TreeWorkspaceRegistry';
 import { TreeParser } from './TreeParser';
 import { dirname } from 'path';
 import { TreeWorkspace } from './TreeWorkspace';
 import * as jsonc from 'jsonc-parser';
 import { jsonNodeToRange, assertDefined } from './utils';
-import { BehaviorTree, Condition, ACTION, CONDITION, Node } from 'behavior_tree_service';
+import { BehaviorTree, ACTION, CONDITION, Node } from 'behavior_tree_service';
 
-export class SymbolProvider implements DefinitionProvider {
+export class SymbolProvider implements DefinitionProvider, ReferenceProvider {
 
     constructor(private treeWorkspaceRegistry: TreeWorkspaceRegistry) {
 
     }
+
+    provideReferences(document: TextDocument, position: Position, context: ReferenceContext, token: CancellationToken): Location[] | undefined {
+        if (token.isCancellationRequested) { return undefined; }
+
+        const symbol = this.getSymbolAtPosition(document, position);
+        if (!symbol) { return undefined; }
+        const relevantTreeNodeSelector = this.getRelevantTreeNodeSelector(symbol);
+
+        return this.getSymbolReferences(symbol.workspace, symbol.name, relevantTreeNodeSelector);
+    }
+
     async provideDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Location | Location[] | undefined> {
+        if (token.isCancellationRequested) { return undefined; }
+
+        const symbol = this.getSymbolAtPosition(document, position);
+
+        if (!symbol) { return undefined; }
+
+        const relevantTreeNodeSelector = this.getRelevantTreeNodeSelector(symbol);
+
+        if (token.isCancellationRequested) { return undefined; }
+
+        return await this.getManifestDeclaration(symbol.workspace, symbol.getKind(), symbol.name) ??
+            this.getSymbolReferences(symbol.workspace, symbol.name, relevantTreeNodeSelector);
+    }
+
+    getSymbolAtPosition(document: TextDocument, position: Position): TreeSymbol | undefined {
         const workspace = this.getWorkspace(document);
 
         if (!workspace) {
@@ -40,8 +66,6 @@ export class SymbolProvider implements DefinitionProvider {
         const leftCode = code.substr(0, positionWithinCode);
         const rightCode = code.substr(positionWithinCode);
 
-        if (token.isCancellationRequested) { return undefined; }
-
         {
             const openRoundBracketMatch = leftCode.match(/^\s*\(/);
             const closedRoundBracketMatch = rightCode.match(/\)\s*(;;.*)?$/);
@@ -50,7 +74,7 @@ export class SymbolProvider implements DefinitionProvider {
                 const conditionName = leftCode.substring((openRoundBracketMatch.index ?? 0) + openRoundBracketMatch.length) +
                     rightCode.substr(0, closedRoundBracketMatch.index ?? 0);
 
-                return await this.getManifestDeclaration(workspace, CONDITION, conditionName) ?? this.getSymbolReferences(workspace, conditionName, this.selectConditionNodes);
+                return new ConditionSymbol(conditionName, workspace);
             }
         }
 
@@ -62,18 +86,37 @@ export class SymbolProvider implements DefinitionProvider {
                 const actionName = leftCode.substring((openSquareBracketMatch.index ?? 0) + openSquareBracketMatch.length) +
                     rightCode.substr(0, closedSquareBracketMatch.index ?? 0);
 
-                return await this.getManifestDeclaration(workspace, ACTION, actionName) ?? this.getSymbolReferences(workspace, actionName, this.selectActionNodes);
+                return new ActionSymbol(actionName, workspace);
             }
         }
+    }
 
+    private getRelevantTreeNodeSelector(symbol: TreeSymbol): (tree: BehaviorTree, symbolName: string) => Node[] {
+        if (symbol instanceof ConditionSymbol) {
+            return this.selectConditionNodes;
+        }
+        else if (symbol instanceof ActionSymbol) {
+            return this.selectActionNodes;
+        }
+        else {
+            throw new Error(`Unexpected symbol type: ${typeof (symbol)}`);
+        }
     }
 
     private selectConditionNodes(tree: BehaviorTree, conditionName: string): Node[] {
-        return [...tree.conditions.get(conditionName)];
+        if (tree.conditions.has(conditionName)) {
+            return [...tree.conditions.get(conditionName)];
+        } else {
+            return [];
+        }
     }
 
     private selectActionNodes(tree: BehaviorTree, actionName: string): Node[] {
-        return [...tree.actions.get(actionName)];
+        if (tree.actions.has(actionName)) {
+            return [...tree.actions.get(actionName)];
+        } else {
+            return [];
+        }
     }
 
     private getSymbolDeclarations(treeWorkspace: TreeWorkspace, symbolKind: string): string[] | undefined {
@@ -114,14 +157,15 @@ export class SymbolProvider implements DefinitionProvider {
     private getSymbolReferences(workspace: TreeWorkspace, conditionName: string, symbolCollectionSelector: (tree: BehaviorTree, symbolName: string) => Node[]): Location[] {
         return workspace.getTreeUris()
             .map(treeUri => {
-                return this.getSymbolTreeReferences(treeUri, assertDefined(workspace.getTree(treeUri), 'tree should exist'), conditionName, symbolCollectionSelector);
+                const tree = assertDefined(workspace.getTree(treeUri), 'tree should exist');
+                return this.getSymbolTreeReferences(treeUri, tree, conditionName, symbolCollectionSelector);
             })
             .reduce((previous, current) => previous.concat(current), []);
     }
 
     private getSymbolTreeReferences(uri: Uri, tree: BehaviorTree, symbolName: string, symbolCollectionSelector: (tree: BehaviorTree, symbolName: string) => Node[]): Location[] {
         return symbolCollectionSelector(tree, symbolName)
-            .map((c: Condition) => SymbolProvider.locationFromLine(uri, c.line));
+            .map((n: Node) => SymbolProvider.locationFromLine(uri, n.line));
     }
 
     static locationFromLine(uri: Uri, line: number): Location {
@@ -130,5 +174,39 @@ export class SymbolProvider implements DefinitionProvider {
 
     private getWorkspace(document: TextDocument): TreeWorkspace | undefined {
         return this.treeWorkspaceRegistry.getWorkspace(dirname(document.uri.fsPath));
+    }
+}
+
+abstract class TreeSymbol {
+    constructor(private name_: string, private workspace_: TreeWorkspace) {
+
+    }
+    abstract getKind(): string;
+
+    get name(): string {
+        return this.name_;
+    }
+
+    get workspace(): TreeWorkspace {
+        return this.workspace_;
+    }
+}
+
+class ConditionSymbol extends TreeSymbol {
+    constructor(name: string, workspace: TreeWorkspace) {
+        super(name, workspace);
+    }
+
+    getKind(): string {
+        return CONDITION;
+    }
+}
+class ActionSymbol extends TreeSymbol {
+    constructor(name: string, workspace: TreeWorkspace) {
+        super(name, workspace);
+    }
+
+    getKind(): string {
+        return ACTION;
     }
 }

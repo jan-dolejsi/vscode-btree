@@ -4,7 +4,7 @@
 	"description": "Behavior tree editing and visualization.",
 	"publisher": "jan-dolejsi",
 	"author": "Jan Dolejsi",
-	"version": "1.5.0",
+	"version": "1.6.0",
 	"engines": {
 		"vscode": "^1.41.0"
 	},

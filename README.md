@@ -104,6 +104,17 @@ to statically validate the system at continuous integration time or at start of 
 > in the same folder (but without the `.tree` extension) are implicitly added to
 > the list of _declared_ actions.
 
+### Action and Condition definition and references
+
+The _Action_ and _Condition_ nodes in trees support the _Go to Definition_ feature
+via context menu, _F12_ key, or _Control+Click_. If the directory contains the `btrees.json`,
+the editor will jump to the corresponding action/condition element in the JSON structure.
+If the `btrees.json` is not present, the editor shows all references instead (as there is no one clear definition point).
+
+The _Action_ and _Condition_ tree nodes support the _Go to References_ and _Find all References_ in the context menu. References across all trees in the same directory are shown.
+
+![Go to definition, show references](img/node_definition_and_references.gif)
+
 ## Release Notes
 
 See [CHANGELOG.md](CHANGELOG.md).
