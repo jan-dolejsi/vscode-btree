@@ -3,3 +3,5 @@ node_modules
 .vscode-test/
 *.vsix
 /webview/*.js
+src/test/tmpUserProfile/
+src/test/tmpFolder/

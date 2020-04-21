@@ -11,24 +11,29 @@ import { TreeParser } from './TreeParser';
 import { TreeWorkspaceRegistry } from './TreeWorkspaceRegistry';
 import { TreeCompletionItemProvider } from './TreeCompletionItemProvider';
 import { TreeCodeActionProvider, DiagnosticCode } from './TreeCodeActionProvider';
+import { assertDefined } from './utils';
+import { SymbolProvider } from './SymbolProvider';
 
 export const TREE = 'tree';
-export const parser = new TreeParser();
-export const treeWorkspaceRegistry = new TreeWorkspaceRegistry(parser);
+export let parser: TreeParser | undefined;
+export let treeWorkspaceRegistry: TreeWorkspaceRegistry | undefined;
 
 export function activate(context: ExtensionContext): void {
 
     console.log('"vscode-btree" was activated');
     const behaviorTreePreviewGenerator = new BehaviorTreePreviewGenerator(context);
 
+    parser = new TreeParser();
+    treeWorkspaceRegistry = new TreeWorkspaceRegistry(parser);
+
     context.subscriptions.push(workspace.onDidOpenTextDocument((doc: TextDocument) => {
-        if (doc.languageId === TREE) {
+        if (doc.languageId === TREE && parser) {
             validateAndUpdateWorkspace(parser, doc);
         }
     }));
 
     context.subscriptions.push(workspace.onDidCloseTextDocument((doc: TextDocument) => {
-        if (doc.languageId === TREE) {
+        if (doc.languageId === TREE && parser) {
             parser.clearValidation(doc);
         }
     }));
@@ -36,7 +41,7 @@ export function activate(context: ExtensionContext): void {
     // When the active document is changed set the provider for rebuild
     // this only occurs after an edit in a document
     context.subscriptions.push(workspace.onDidChangeTextDocument((e: TextDocumentChangeEvent) => {
-        if (e.document.languageId === TREE) {
+        if (e.document.languageId === TREE && parser) {
             behaviorTreePreviewGenerator.setNeedsRebuild(e.document.uri, true);
             validateAndUpdateWorkspace(parser, e.document);
         }
@@ -76,16 +81,17 @@ export function activate(context: ExtensionContext): void {
     languages.registerCompletionItemProvider(TREE, completionItemProvider, '(', '[');
 
     context.subscriptions.push(commands.registerCommand(TreeCodeActionProvider.DECLARE_ALL, (documentUri?: Uri) => {
+        const twr = assertDefined(treeWorkspaceRegistry, "tree workspace registry");
         if (!documentUri) {
             if (window.activeTextEditor) {
-                addAllUndeclaredToManifest(window.activeTextEditor.document.uri);
+                addAllUndeclaredToManifest(twr, window.activeTextEditor.document.uri);
             }
             else {
                 window.showErrorMessage('No tree opened');
             }
         }
         else {
-            addAllUndeclaredToManifest(documentUri);
+            addAllUndeclaredToManifest(twr, documentUri);
         }
     }));
 
@@ -99,15 +105,18 @@ export function activate(context: ExtensionContext): void {
         diagCode.treeWorkspace.addDeclaredCondition(diagCode.undeclaredName);
     }));
 
+    const symbolProvider = new SymbolProvider(treeWorkspaceRegistry);
+    context.subscriptions.push(languages.registerDefinitionProvider(TREE, symbolProvider));
+
     // when the editor re-opens a workspace, this will re-validate the visible documents
     workspace.textDocuments
         .filter(doc => doc.languageId === TREE)
-        .forEach(doc => validateAndUpdateWorkspace(parser, doc));
+        .forEach(doc => validateAndUpdateWorkspace(assertDefined(parser, "parser"), doc));
 }
 
 export function validateAndUpdateWorkspace(parser: TreeParser, doc: TextDocument): void {
     const tree = parser.parseAndValidate(doc);
-    treeWorkspaceRegistry.updateWorkspace(doc, tree);
+    assertDefined(treeWorkspaceRegistry, "tree workspace registry").updateWorkspace(doc, tree);
 }
 
 async function getTreeDocument(treeDocumentUri: Uri | undefined): Promise<TextDocument | undefined> {
@@ -137,7 +146,7 @@ function languageConfiguration(): LanguageConfiguration {
     };
 }
 
-function addAllUndeclaredToManifest(uri: Uri): void {
+function addAllUndeclaredToManifest(treeWorkspaceRegistry: TreeWorkspaceRegistry, uri: Uri): void {
     const folderName = path.dirname(uri.fsPath);
     const folder = treeWorkspaceRegistry.getWorkspace(folderName);
 

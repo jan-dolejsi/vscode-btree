@@ -3,11 +3,11 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-import { Uri, workspace, window, EventEmitter, Event, FileStat, Disposable, TextDocument } from 'vscode';
+import { Uri, workspace, window, EventEmitter, Event, FileStat, Disposable, TextDocument, WorkspaceEdit, Range, Position } from 'vscode';
 import { BehaviorTree } from 'behavior_tree_service';
 import * as path from 'path';
 import { TreeParser } from './TreeParser';
-import { parser } from './extension';
+import * as jsonc from 'jsonc-parser';
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
@@ -52,7 +52,7 @@ export class TreeWorkspace implements Disposable {
 
     private initialized = false;
 
-    constructor(public readonly folderPath: string, private parse: TreeParser) {
+    constructor(public readonly folderPath: string, private parser: TreeParser) {
         this.manifestPath = path.join(this.folderPath, 'btrees.json');
 
         this.initialize();
@@ -171,6 +171,7 @@ export class TreeWorkspace implements Disposable {
 
     async saveManifest(): Promise<void> {
         let manifest = await this.readManifest();
+        const manifestExisted = !!manifest;
 
         if (!manifest) {
             manifest = {};
@@ -199,7 +200,17 @@ export class TreeWorkspace implements Disposable {
         }
 
         // write it to file
-        await workspace.fs.writeFile(Uri.file(this.getManifestPath()), Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8'));
+        const newManifestText = JSON.stringify(manifest, null, 2);
+        const manifestUri = Uri.file(this.getManifestPath());
+        if (manifestExisted) {
+            const manifestDoc = await workspace.openTextDocument(manifestUri);
+            const manifestDocRange = manifestDoc.validateRange(new Range(new Position(0, 0), new Position(manifestDoc.lineCount, Number.MAX_VALUE)));
+            const replaceManifestText = new WorkspaceEdit();
+            replaceManifestText.replace(manifestUri, manifestDocRange, newManifestText);
+            await workspace.applyEdit(replaceManifestText);
+        } else {
+            await workspace.fs.writeFile(manifestUri, Buffer.from(newManifestText, 'utf-8'));
+        }
         this._onInitialized.fire({ workspace: this });
     }
 
@@ -256,7 +267,7 @@ export class TreeWorkspace implements Disposable {
         }
     }
 
-    private async readManifest(): Promise<TreeWorkspaceManifest | undefined> {
+    private async readManifestText(): Promise<string | undefined> {
         const manifestUri = Uri.file(this.manifestPath);
         let manifestStat: FileStat | undefined;
         try {
@@ -268,10 +279,20 @@ export class TreeWorkspace implements Disposable {
         }
 
         if (manifestStat) {
-            const manifestData = await workspace.fs.readFile(manifestUri);
-            const manifestText = Buffer.from(manifestData).toString('utf8');
-            return JSON.parse(manifestText) as TreeWorkspaceManifest;
+            return (await workspace.openTextDocument(manifestUri)).getText();
         }
+    }
+
+    async readManifest(): Promise<TreeWorkspaceManifest | undefined> {
+        const manifestText = await this.readManifestText();
+        if (!manifestText) { return undefined; }
+        return jsonc.parse(manifestText) as TreeWorkspaceManifest;
+    }
+
+    async readManifestTree(): Promise<jsonc.Node | undefined> {
+        const manifestText = await this.readManifestText();
+        if (!manifestText) { return undefined; }
+        return jsonc.parseTree(manifestText);
     }
 
     getConditionsUsed(): string[] {
@@ -291,7 +312,7 @@ export class TreeWorkspace implements Disposable {
     }
 
     parseAndUpsert(uri: Uri, document: TextDocument): void {
-        const tree = parser.parseAndValidate(document);
+        const tree = this.parser.parseAndValidate(document);
         this.upsert(uri, tree);
     }
 
@@ -357,14 +378,14 @@ export class TreeWorkspace implements Disposable {
  * @param param1 action to execute after subscribing to the event and filter to apply to events
  */
 export async function waitFor<T>(event: Event<T>, { action, filter }: { action?: () => void; filter?: (event: T) => boolean } = {}): Promise<T> {
-	return new Promise<T>(resolve => {
-		const subscription = event(e => {
-			if ((filter && filter(e)) ?? true) {
-				resolve(e);
-				subscription.dispose();
-			}
-		});
+    return new Promise<T>(resolve => {
+        const subscription = event(e => {
+            if ((filter && filter(e)) ?? true) {
+                resolve(e);
+                subscription.dispose();
+            }
+        });
 
-		action && action();
-	});
+        action && action();
+    });
 }

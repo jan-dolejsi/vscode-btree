@@ -1,40 +1,27 @@
 import { expect, assert } from 'chai';
-import { suite, before, beforeEach, afterEach } from 'mocha';
+import { suite, before, beforeEach } from 'mocha';
 
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as extension from '../../extension';
 import { fail } from 'assert';
-import { openTreeDocument, activateExtension, deleteTempFiles } from './testUtils';
+import { openTreeDocument, activateExtension, primeWorkspaceFolder, prepareWorkspaceFolder } from './testUtils';
+import { assertDefined } from '../../utils';
 
 suite('Workspace Test Suite', () => {
 
 	before(async () => {
 		vscode.window.showInformationMessage('Start Workspace tests.');
+		await primeWorkspaceFolder();
 		await activateExtension();
 	});
 
 	beforeEach(async () => {
-		extension.treeWorkspaceRegistry.clear();
-
-		if (!vscode.workspace.workspaceFolders) {
-			assert.fail('No workspace folder open');
-		}
-
-		const workspaceFolder = vscode.workspace.workspaceFolders[0];
-
-		filesToDelete.push(vscode.Uri.file(path.join(workspaceFolder.uri.fsPath, 'folder1', 'btrees.json')));
-		await deleteTempFiles(filesToDelete);
-	});
-
-	const filesToDelete = new Array<vscode.Uri>();
-
-	afterEach(async () => {
-		await deleteTempFiles(filesToDelete);
+		extension.treeWorkspaceRegistry?.clear();
 	});
 
 	test('initializes in folder without manifest', async () => {
-		const treeWorkspaceRegistry = extension.treeWorkspaceRegistry;
+		const treeWorkspaceRegistry = assertDefined(extension.treeWorkspaceRegistry, 'tree workspace registry');
 
 		if (!vscode.workspace.workspaceFolders) {
 			assert.fail('No workspace folder open');
@@ -66,13 +53,12 @@ suite('Workspace Test Suite', () => {
 
 	test('undeclared actions show up when manifest is created', async () => {
 
-		const treeWorkspaceRegistry = extension.treeWorkspaceRegistry;
+		const treeWorkspaceRegistry = assertDefined(extension.treeWorkspaceRegistry, 'tree workspace registry');
 		if (!vscode.workspace.workspaceFolders) {
 			assert.fail('No workspace folder open');
 		}
 
-		const workspaceFolder = vscode.workspace.workspaceFolders[0];
-		const folder1Path = path.join(workspaceFolder.uri.fsPath, 'folder1');
+		const folder1Path = await prepareWorkspaceFolder('folder1', 'folder1_withoutManifest');
 		const tree1Path = path.join(folder1Path, 'tree1.tree');
 		const tree1Uri = vscode.Uri.file(tree1Path);
 
@@ -94,31 +80,26 @@ suite('Workspace Test Suite', () => {
 		const tree1 = treeWorkspace.getTree(tree1Uri);
 		if (!tree1) { fail('Tree should be in the workspace'); }
 
-		try {
-			await treeWorkspace.initialization({
-				action: async () => {
-					// create empty manifest file
-					filesToDelete.push(vscode.Uri.file(treeWorkspace.getManifestPath()));
-					await treeWorkspace.saveManifest();
-				}
-			});
+		await treeWorkspace.initialization({
+			action: async () => {
+				// create empty manifest file
+				await treeWorkspace.saveManifest();
+			}
+		});
 
-			expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with empty manifest").to.be.empty;
+		expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with empty manifest").to.be.empty;
 
-			await treeWorkspace.addDeclaredAction('action1');
+		await treeWorkspace.addDeclaredAction('action1');
 
-			expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with manifest=[action1]").to.include.members(['action2']);
+		expect(treeWorkspace.getUndeclaredActions(tree1), "undeclared actions with manifest=[action1]").to.include.members(['action2']);
 
-			treeWorkspace.addDeclaredCondition('condition1');
+		treeWorkspace.addDeclaredCondition('condition1');
 
-			expect(treeWorkspace.getUndeclaredConditions(tree1), "undeclared conditions").to.include.members(['condition2']);
-		} finally {
-			await deleteTempFiles(filesToDelete);
-		}
+		expect(treeWorkspace.getUndeclaredConditions(tree1), "undeclared conditions").to.include.members(['condition2']);
 	});
 
 	test('initializes in folder with manifest', async () => {
-		const treeWorkspaceRegistry = extension.treeWorkspaceRegistry;
+		const treeWorkspaceRegistry = assertDefined(extension.treeWorkspaceRegistry, 'tree workspace registry');
 		if (!vscode.workspace.workspaceFolders) {
 			assert.fail('No workspace folder open');
 		}
@@ -144,7 +125,7 @@ suite('Workspace Test Suite', () => {
 	});
 
 	test('initializes in folder with 2 trees', async () => {
-		const treeWorkspaceRegistry = extension.treeWorkspaceRegistry;
+		const treeWorkspaceRegistry = assertDefined(extension.treeWorkspaceRegistry, 'tree workspace registry');
 		if (!vscode.workspace.workspaceFolders) {
 			assert.fail('No workspace folder open');
 		}

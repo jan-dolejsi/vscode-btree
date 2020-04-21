@@ -1,0 +1,12 @@
+{
+  "conditions": {
+    "condition1": {},
+    "condition2": {},
+    "condition3": {}
+  },
+  "actions": {
+    "action1": {},
+    "action2": {},
+    "action3": {}
+  }
+}
