@@ -44,6 +44,10 @@ export class TreeParser {
         return ["", lineText];
     }
 
+    static isInComments(lineText: string, position: number): boolean {
+        return lineText.substr(0, position).includes(';;');
+    }
+    
     static getParentNode(text: string): string | undefined {
         const match = text.match(/(->|\?|=[\d]+)$/);
 

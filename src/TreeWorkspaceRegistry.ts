@@ -11,6 +11,8 @@ import { TreeWorkspace, WorkspaceTreeEvent, WorkspaceEvent, waitFor } from './Tr
 import { BehaviorTree, Action, Condition, Node } from 'behavior_tree_service';
 import { TreeParser } from './TreeParser';
 import { DiagnosticCode } from './TreeCodeActionProvider';
+import { parseTree, findNodeAtLocation } from 'jsonc-parser';
+import { jsonNodeToRange } from './utils';
 
 export class TreeWorkspaceRegistry implements Disposable {
     private workspaces = new Map<string, TreeWorkspace>();
@@ -38,7 +40,7 @@ export class TreeWorkspaceRegistry implements Disposable {
         return this.workspaces.get(folderPath);
     }
 
-    updateWorkspace(doc: TextDocument, tree: BehaviorTree): void {
+    async updateWorkspace(doc: TextDocument, tree: BehaviorTree): Promise<void> {
         const folder = path.dirname(doc.uri.fsPath);
         if (!this.workspaces.has(folder)) {
             const newTreeWorkspace = new TreeWorkspace(folder, this.parser);
@@ -53,8 +55,7 @@ export class TreeWorkspaceRegistry implements Disposable {
         const workspace = this.workspaces.get(folder);
         if (workspace) {
             workspace.upsert(doc.uri, tree);
-
-            this.populateUndeclaredSymbols(workspace, doc, tree);
+            await this.populateUndeclaredSymbols(workspace, doc, tree);
         }
     }
 
@@ -65,7 +66,7 @@ export class TreeWorkspaceRegistry implements Disposable {
             .map(async (treeUri) => {
                 const tree = treeWorkspace.getTree(treeUri);
                 if (tree) {
-                    this.populateUndeclaredSymbols(treeWorkspace,
+                    await this.populateUndeclaredSymbols(treeWorkspace,
                         await workspace.openTextDocument(treeUri),
                         tree);
                 }
@@ -78,35 +79,51 @@ export class TreeWorkspaceRegistry implements Disposable {
         await Promise.all(promises);
     }
 
-    populateUndeclaredSymbols(workspace: TreeWorkspace, document: TextDocument, tree: BehaviorTree): void {
-        const actionDiags = workspace.getUndeclaredActions(tree)
+    async populateUndeclaredSymbols(treeWorkspace: TreeWorkspace, document: TextDocument, tree: BehaviorTree): Promise<void> {
+        let manifestDoc: TextDocument | undefined;
+        try {
+            const manifestUri = Uri.file(treeWorkspace.getManifestPath());
+            manifestDoc = await workspace.openTextDocument(manifestUri);
+        }
+        catch (err) {
+            // manifest does not exist 
+        }
+
+        const actionDiags = treeWorkspace.getUndeclaredActions(tree)
             .map(undeclaredAction => tree.actions.get(undeclaredAction))
             .filter(actionNodes => actionNodes.length > 0)
             .map((action: Action[]) =>
-                this.createDiagnostic(action[0], document, workspace));
+                this.createDiagnostic(action[0], document, manifestDoc, treeWorkspace));
 
-        const conditionDiags = workspace.getUndeclaredConditions(tree)
+        const conditionDiags = treeWorkspace.getUndeclaredConditions(tree)
             .map(undeclaredCondition => tree.conditions.get(undeclaredCondition))
             .filter(conditionNodes => conditionNodes.length > 0)
             .map((condition: Condition[]) =>
-                this.createDiagnostic(condition[0], document, workspace));
+                this.createDiagnostic(condition[0], document, manifestDoc, treeWorkspace));
 
         this.undeclaredSymbolDiagCollection.set(document.uri, actionDiags.concat(conditionDiags));
     }
 
-    private createDiagnostic(node: Node, document: TextDocument, workspace: TreeWorkspace): Diagnostic {
+    private createDiagnostic(node: Node, document: TextDocument, manifestDoc: TextDocument | undefined, treeWorkspace: TreeWorkspace): Diagnostic {
         const diagnostic = new Diagnostic(this.toRange(node, document), `Undeclared ${node.kind} ${node.name}`, DiagnosticSeverity.Warning);
         diagnostic.source = 'btree';
-        // todo: instead of showing the position 0,0, use https://www.npmjs.com/package/jsonc-parser
-        diagnostic.relatedInformation = [
-            new DiagnosticRelatedInformation(new Location(Uri.file(workspace.getManifestPath()), new Position(0, 0)), 'See supported action/conditions.')
-        ];
+
+        if (manifestDoc) {
+            const rootNode = parseTree(manifestDoc.getText());
+            const jsonConditionNode = findNodeAtLocation(rootNode, [node.kind + "s", node.name]) ?? findNodeAtLocation(rootNode, [node.kind + "s"]);
+            const selection = (jsonConditionNode && jsonNodeToRange(manifestDoc, jsonConditionNode)) ?? new Position(0, 0);
+
+            diagnostic.relatedInformation = [
+                new DiagnosticRelatedInformation(new Location(manifestDoc.uri, selection), `See supported ${node.kind}s.`)
+            ];
+        }
+        
         const code: DiagnosticCode = {
             value: "undeclared_" + node.kind,
             target: Uri.parse('https://github.com/jan-dolejsi/vscode-btree#action-and-condition-name-validation'),
             kind: node.kind,
             undeclaredName: node.name,
-            treeWorkspace: workspace
+            treeWorkspace: treeWorkspace
         };
         diagnostic.code = code;
         return diagnostic;

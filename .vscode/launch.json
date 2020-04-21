@@ -27,7 +27,9 @@
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
 				"--extensionTestsPath=${workspaceFolder}/out/test/suite/index",
-				"--folder-uri=${workspaceFolder}/src/test/workspace"
+				"--folder-uri=${workspaceFolder}/src/test/tmpFolder",
+				"--user-data-dir=${workspaceFolder}/src/test/tmpUserProfile/",
+				"--disable-extensions"
 			],
 			"outFiles": [
 				"${workspaceFolder}/out/test/**/*.js"

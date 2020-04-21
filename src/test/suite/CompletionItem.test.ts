@@ -1,5 +1,5 @@
 import { expect, assert } from 'chai';
-import { suite, before, beforeEach, afterEach } from 'mocha';
+import { suite, before, beforeEach } from 'mocha';
 
 import * as vscode from 'vscode';
 import * as path from 'path';
@@ -7,39 +7,32 @@ import * as extension from '../../extension';
 import { AssertionError } from 'assert';
 import { TreeCompletionItemProvider } from '../../TreeCompletionItemProvider';
 import { Uri } from 'vscode';
-import { activateExtension } from './testUtils';
+import { activateExtension, prepareWorkspaceFolder, clearWorkspaceFolder } from './testUtils';
+import { assertDefined } from '../../utils';
 
 suite('Completion Item provider Test Suite', () => {
 
 	before(async () => {
 		vscode.window.showInformationMessage('Start Completion Item tests.');
+		await clearWorkspaceFolder();
 		await activateExtension();
 	});
 
 	beforeEach(() => {
-		extension.treeWorkspaceRegistry.clear();
-	});
-
-	const filesToDelete = new Array<vscode.Uri>();
-
-	afterEach(async () => {
-		await Promise.all(filesToDelete.map(fileUri => vscode.workspace.fs.delete(fileUri)));
-		filesToDelete.length = 0;
+		extension.treeWorkspaceRegistry?.clear();
 	});
 
 	test('auto-completion in folder without manifest', async () => {
-		const treeWorkspaceRegistry = extension.treeWorkspaceRegistry;
+		const treeWorkspaceRegistry = assertDefined(extension.treeWorkspaceRegistry, "tree workspace registry");
 
 		if (!vscode.workspace.workspaceFolders) {
 			assert.fail('No workspace folder open');
 		}
 
-		const workspaceFolder = vscode.workspace.workspaceFolders[0];
-		const folder1Path = path.join(workspaceFolder.uri.fsPath, 'folder1');
+		const folder1Path = await prepareWorkspaceFolder('folder1', 'folder1_forAdditionalFileCreation');
 		const newTreePath = path.join(folder1Path, 'newTree.tree');
 		const newTreeUri = Uri.file(newTreePath);
 		const newTreeContent = '->\n|\t';
-		filesToDelete.push(newTreeUri);
 		let newTreeDoc: vscode.TextDocument | undefined;
 
 		const treeWorkspace = (await treeWorkspaceRegistry.change({
@@ -105,17 +98,15 @@ suite('Completion Item provider Test Suite', () => {
 	});
 
 	test('auto-completion in folder with manifest', async () => {
-		const treeWorkspaceRegistry = extension.treeWorkspaceRegistry;
+		const treeWorkspaceRegistry = assertDefined(extension.treeWorkspaceRegistry, "tree workspace registry");
 		if (!vscode.workspace.workspaceFolders) {
 			assert.fail('No workspace folder open');
 		}
 
-		const workspaceFolder = vscode.workspace.workspaceFolders[0];
-		const folder2Path = path.join(workspaceFolder.uri.fsPath, 'folder2');
+		const folder2Path = await prepareWorkspaceFolder('folder2', 'folder2_forAdditionalFileCreation');
 		const newTreePath = path.join(folder2Path, 'newTree.tree');
 		const newTreeUri = Uri.file(newTreePath);
 		const newTreeContent = '->\n|\t';
-		filesToDelete.push(newTreeUri);
 		let newTreeDoc: vscode.TextDocument | undefined;
 
 		const treeWorkspace = (await treeWorkspaceRegistry.change({

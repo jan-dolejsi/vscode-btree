@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.6.x
+
+- Actions and Conditions in trees now support the _Go to Definition_ via context menu, _F12_ key, or _Control+Click_.
+- Actions and Conditions in trees now support the _Go to References_ and _Find all References_.
+
+![Go to definition, show references](img/node_definition_and_references.gif)
+
 ## 1.5.x
 
 New
