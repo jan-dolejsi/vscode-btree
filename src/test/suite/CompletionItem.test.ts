@@ -82,9 +82,9 @@ suite('Completion Item provider Test Suite', () => {
 		{
 			const completionItems = new TreeCompletionItemProvider(treeWorkspaceRegistry)
 				.provideCompletionItems(newTreeDoc, newTreeDoc.positionAt(newTreeContent.length),
-					new vscode.CancellationTokenSource().token,
-					{
-						triggerKind: vscode.CompletionTriggerKind.Invoke
+					new vscode.CancellationTokenSource().token, {
+						triggerKind: vscode.CompletionTriggerKind.Invoke,
+						triggerCharacter: undefined
 					});
 
 			expect(completionItems, "completion item").to.not.be.undefined;
@@ -156,9 +156,9 @@ suite('Completion Item provider Test Suite', () => {
 		{
 			const completionItems = new TreeCompletionItemProvider(treeWorkspaceRegistry)
 				.provideCompletionItems(newTreeDoc, newTreeDoc.positionAt(newTreeContent.length),
-					new vscode.CancellationTokenSource().token,
-					{
-						triggerKind: vscode.CompletionTriggerKind.Invoke
+					new vscode.CancellationTokenSource().token, {
+						triggerKind: vscode.CompletionTriggerKind.Invoke,
+						triggerCharacter: undefined
 					});
 
 			expect(completionItems, "completion item").to.not.be.undefined;

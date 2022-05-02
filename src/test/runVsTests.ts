@@ -15,7 +15,7 @@ async function main(): Promise<void> {
 		// Passed to --extensionTestsPath
 		const extensionTestsPath = path.resolve(__dirname, './suite/index');
 
-		const vsCodeVersions = ['1.41.1', 'stable']; 
+		const vsCodeVersions = ['stable']; 
 
 		const options: TestOptions = {
 			extensionDevelopmentPath: extensionDevelopmentPath, extensionTestsPath: extensionTestsPath
@@ -25,8 +25,8 @@ async function main(): Promise<void> {
 			await runTestsInEmptyWorkspaceFolder(options, version, ["--disable-extensions"]);
 		}
 
-	} catch (err) {
-		console.error('Failed to run tests:'  + (err.message ?? err));
+	} catch (err: unknown) {
+		console.error('Failed to run tests:'  + ((err as Error).message ?? err));
 		process.exit(1);
 	}
 }

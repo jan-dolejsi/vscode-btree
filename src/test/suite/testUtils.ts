@@ -38,8 +38,8 @@ export async function deleteTempFiles(filesToDelete: Uri[]): Promise<void> {
             await workspace.fs.delete(fileUri);
             console.debug(`Deleted: ${fileUri}`);
         }
-        catch (err) {
-            console.error(`File requested for deletion does not exist: ${fileUri} ${err?.message ?? err}`);
+        catch (err: unknown) {
+            console.error(`File requested for deletion does not exist: ${fileUri} ${(err as Error)?.message ?? err}`);
         }
     }));
     filesToDelete.length = 0;

@@ -9,7 +9,7 @@
     "prepare_disabled": "copyfiles --error --verbose --flat ./html/*.js ./out",
     "compile": "npm run lint && browserify src/preview.ts -p tsify > out/preview.js",
     "lint": "eslint src --ext ts",
-    "watch": "watchify -p tsify -o out/preview.js"
+    "watch": "watchify src/preview.ts -p tsify -o out/preview.js"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +19,7 @@
     "@typescript-eslint/parser": "file:../node_modules/@typescript-eslint/parser",
     "behavior_tree_service": "file:../node_modules/behavior_tree_service/",
     "browserify": "^16.5.1",
-    "copyfiles": "2.2.0",
+    "copyfiles": "2.4.1",
     "d3": "^5.15.1",
     "download-file": "^0.1.5",
     "eslint": "file:../node_modules/eslint",

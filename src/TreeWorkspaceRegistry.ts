@@ -110,7 +110,7 @@ export class TreeWorkspaceRegistry implements Disposable {
 
         if (manifestDoc) {
             const rootNode = parseTree(manifestDoc.getText());
-            const jsonConditionNode = findNodeAtLocation(rootNode, [node.kind + "s", node.name]) ?? findNodeAtLocation(rootNode, [node.kind + "s"]);
+            const jsonConditionNode = rootNode && (findNodeAtLocation(rootNode, [node.kind + "s", node.name]) ?? findNodeAtLocation(rootNode, [node.kind + "s"]));
             const selection = (jsonConditionNode && jsonNodeToRange(manifestDoc, jsonConditionNode)) ?? new Position(0, 0);
 
             diagnostic.relatedInformation = [

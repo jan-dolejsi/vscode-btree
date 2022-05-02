@@ -92,7 +92,7 @@ function nodeDoubleClicked(node: Node, shiftKey: boolean): void {
                 displayedTree.setActionStatus(node.name, newValue);
                 if (treeRefresh) {
                     treeRefresh();
-                };
+                }
                 break;
         }
     }
