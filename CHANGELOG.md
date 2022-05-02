@@ -1,6 +1,10 @@
 # Change Log
 
-## 1.6.x
+## 1.6.1
+
+- Tree Preview commands are now showing up in all the standard places, including the editor title bar and explorer context menu.
+
+## 1.6.0
 
 - Actions and Conditions in trees now support the _Go to Definition_ via context menu, _F12_ key, or _Control+Click_.
 - Actions and Conditions in trees now support the _Go to References_ and _Find all References_.

@@ -144,7 +144,7 @@ export class SymbolProvider implements DefinitionProvider, ReferenceProvider {
                 return undefined;
             }
             const rootNode = jsonc.parseTree(manifestDoc.getText());
-            const jsonSymbolNode = jsonc.findNodeAtLocation(rootNode, [symbolKind + "s", symbolName]);
+            const jsonSymbolNode = rootNode && jsonc.findNodeAtLocation(rootNode, [symbolKind + "s", symbolName]);
 
             const selection = jsonSymbolNode && jsonNodeToRange(manifestDoc, jsonSymbolNode);
 
