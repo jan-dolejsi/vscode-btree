@@ -20,7 +20,7 @@
     "behavior_tree_service": "file:../node_modules/behavior_tree_service/",
     "browserify": "^16.5.1",
     "copyfiles": "2.4.1",
-    "d3": "^5.15.1",
+    "d3": "^7.6.1",
     "download-file": "^0.1.5",
     "eslint": "file:../node_modules/eslint",
     "tsify": "^4.0.1",
