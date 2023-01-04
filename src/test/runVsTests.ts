@@ -1,9 +1,9 @@
 import * as path from 'path';
 
-import { runTests } from 'vscode-test';
+import { runTests } from "@vscode/test-electron";
 import { URI } from 'vscode-uri';
 import * as tmp from 'tmp-promise';
-import { TestOptions } from 'vscode-test/out/runTest';
+import { TestOptions } from '@vscode/test-electron/out/runTest';
 
 async function main(): Promise<void> {
 	try {
@@ -15,7 +15,7 @@ async function main(): Promise<void> {
 		// Passed to --extensionTestsPath
 		const extensionTestsPath = path.resolve(__dirname, './suite/index');
 
-		const vsCodeVersions = ['stable']; 
+		const vsCodeVersions = ['stable']; //'1.50.x', 
 
 		const options: TestOptions = {
 			extensionDevelopmentPath: extensionDevelopmentPath, extensionTestsPath: extensionTestsPath
@@ -26,7 +26,8 @@ async function main(): Promise<void> {
 		}
 
 	} catch (err: unknown) {
-		console.error('Failed to run tests:'  + ((err as Error).message ?? err));
+		const error = err as Error;
+		console.error('Failed to run tests:'  + (error.message ?? err));
 		process.exit(1);
 	}
 }

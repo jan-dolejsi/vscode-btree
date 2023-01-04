@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false  # to see how the tests pan out on all platforms
       matrix:
-        node-version: [14.18]
+        node-version: [16]
         os: [windows-latest, macos-latest, ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
@@ -51,7 +51,7 @@ jobs:
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
-          node-version: 14.18
+          node-version: 16
 
       - name: NPM Install
         run: npm install

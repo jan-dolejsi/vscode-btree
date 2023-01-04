@@ -11,13 +11,12 @@
 			"presentation": {
 				"reveal": "never"
 			},
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
+			"group": "build",
 			"runOptions": {
 				"runOn": "folderOpen"
-			}
+			},
+			"label": "npm: watch",
+			"detail": "tsc -watch -p ./"
 		},
 		{
 			"type": "npm",
@@ -31,6 +30,19 @@
 			"runOptions": {
 				"runOn": "folderOpen"
 			}
+		},
+		{
+			"type": "npm",
+			"script": "compile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$tsc"
+			],
+			"label": "npm: compile",
+			"detail": "tsc -p ./ && npm run compile:webview"
 		}
 	]
 }
