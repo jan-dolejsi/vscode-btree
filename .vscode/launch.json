@@ -11,6 +11,7 @@
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
 			"args": [
+				"--folder-uri=${workspaceFolder}/src/test/workspace/",
 				"--extensionDevelopmentPath=${workspaceFolder}"
 			],
 			"outFiles": [

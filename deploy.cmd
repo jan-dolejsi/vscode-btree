@@ -3,7 +3,7 @@
 :: https://code.visualstudio.com/docs/editor/extension-gallery#_install-from-a-vsix
 
 call npm install
-call npm install -g vsce
+call npm install --location=global vsce
 
 call vsce ls
 echo Review the files included before you continue
